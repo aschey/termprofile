@@ -105,7 +105,7 @@ impl ColorSupport {
 
     fn detect_term_vars() -> Option<Self> {
         let colorterm = env_var_normalized("COLORTERM").unwrap_or_default();
-        let term = env_var_normalized("TERM").unwrap_or_default();
+        let term: String = env_var_normalized("TERM").unwrap_or_default();
         let term_program = env_var_normalized("TERM_PROGRAM").unwrap_or_default();
         match colorterm.as_str() {
             "24bit" | "truecolor" => {
@@ -120,8 +120,26 @@ impl ColorSupport {
             _ => {}
         }
 
-        if term_program == "mintty" {
-            return Some(Self::TrueColor);
+        match term_program.as_str() {
+            "mintty" => {
+                // Supported as of 2015: https://github.com/mintty/mintty/commit/8e1f4c260b5e1b3311caf10e826d87c85b3c9433
+                return Some(Self::TrueColor);
+            }
+            "iterm.app" => {
+                let term_program_version = env_var_normalized("TERM_PROGRAM_VERSION")
+                    .unwrap_or_default()
+                    .split(".")
+                    .next()
+                    .and_then(|v| v.parse::<u32>().ok())
+                    .unwrap_or(0);
+                if term_program_version >= 3 {
+                    return Some(Self::TrueColor);
+                } else {
+                    return Some(Self::Ansi256);
+                }
+            }
+            "apple_terminal" => return Some(Self::Ansi256),
+            _ => {}
         }
 
         match term.as_str() {
