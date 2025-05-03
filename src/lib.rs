@@ -1,5 +1,6 @@
 use std::{env, io::IsTerminal};
 
+#[derive(Debug)]
 pub enum ColorSupport {
     None,
     Ansi16,
@@ -24,7 +25,6 @@ impl ColorSupport {
         if let Some(env) = Self::detect_term_vars() {
             return env;
         }
-
         ColorSupport::None
     }
 
@@ -100,7 +100,7 @@ impl ColorSupport {
     }
 
     fn detect_term_vars() -> Option<Self> {
-        let colorterm = env_var_normalized("COLORTERM")?;
+        let colorterm = env_var_normalized("COLORTERM").unwrap_or_default();
         let term = env_var_normalized("TERM").unwrap_or_default();
         let term_program = env_var_normalized("TERM_PROGRAM").unwrap_or_default();
         match colorterm.as_str() {
