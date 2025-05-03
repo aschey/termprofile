@@ -25,6 +25,10 @@ impl ColorSupport {
         if let Some(env) = Self::detect_term_vars() {
             return env;
         }
+        #[cfg(windows)]
+        if let Some(env) = Self::detect_windows_version() {
+            return env;
+        }
         ColorSupport::None
     }
 
@@ -116,6 +120,10 @@ impl ColorSupport {
             _ => {}
         }
 
+        if term_program == "mintty" {
+            return Some(Self::TrueColor);
+        }
+
         match term.as_str() {
             "alacritty" | "contour" | "rio" | "wezterm" | "xterm-ghostty" | "xterm-kitty" => {
                 return Some(Self::TrueColor);
@@ -137,6 +145,37 @@ impl ColorSupport {
 
         None
     }
+
+    #[cfg(windows)]
+    fn detect_windows_version() -> Option<Self> {
+        use os_info::Version;
+        let info = os_info::get();
+        let windows_version = info.version();
+        if let Version::Semantic(os_version, _, build_number) = windows_version {
+            if *build_number < 10586 || *os_version < 10 {
+                if is_env_var_non_empty("ANSICON") {
+                    let ansicon_version = env_var_normalized("ANSICON_VER")
+                        .unwrap_or_default()
+                        .parse::<u32>();
+                    if ansicon_version.map(|v| v >= 181).unwrap_or(false) {
+                        return Some(Self::Ansi256);
+                    } else {
+                        return Some(Self::Ansi16);
+                    }
+                }
+
+                return Some(Self::None);
+            }
+
+            if *build_number < 14931 {
+                return Some(Self::Ansi256);
+            }
+
+            Some(Self::TrueColor)
+        } else {
+            None
+        }
+    }
 }
 
 fn env_var_normalized(var: &str) -> Option<String> {
@@ -152,4 +191,3 @@ fn is_env_var_non_empty(var: &str) -> bool {
         .map(|v| !v.is_empty())
         .unwrap_or(false)
 }
-
