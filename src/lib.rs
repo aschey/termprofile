@@ -44,7 +44,7 @@ impl ColorSupport {
         let force_color =
             env_var_normalized("FORCE_COLOR").or_else(|| env_var_normalized("CLICOLOR_FORCE"))?;
 
-        if is_env_var_truthy(&force_color) {
+        if is_value_truthy(&force_color) {
             if let Some(term) = Self::detect_term_vars() {
                 if matches!(term, Self::Ansi256 | Self::TrueColor) {
                     // If the terminal reports it has better color support, don't force it to use
@@ -107,17 +107,18 @@ impl ColorSupport {
         let colorterm = env_var_normalized("COLORTERM").unwrap_or_default();
         let term: String = env_var_normalized("TERM").unwrap_or_default();
         let term_program = env_var_normalized("TERM_PROGRAM").unwrap_or_default();
-        match colorterm.as_str() {
-            "24bit" | "truecolor" => {
-                if term.starts_with("screen") && term_program != "tmux" {
-                    return Some(Self::Ansi256);
-                }
-                return Some(Self::TrueColor);
-            }
-            "yes" | "1" | "true" => {
+
+        if matches!(colorterm.as_str(), "24bit" | "truecolor") {
+            // New versions of screen do support truecolor, but it must be enabled explicitly and
+            // there doesn't appear to be an easy way to detect this.
+            if term.starts_with("screen") && term_program != "tmux" {
                 return Some(Self::Ansi256);
             }
-            _ => {}
+            return Some(Self::TrueColor);
+        }
+
+        if is_value_truthy(&colorterm) {
+            return Some(Self::Ansi256);
         }
 
         match term_program.as_str() {
@@ -143,7 +144,8 @@ impl ColorSupport {
         }
 
         match term.as_str() {
-            "alacritty" | "contour" | "rio" | "wezterm" | "xterm-ghostty" | "xterm-kitty" => {
+            "alacritty" | "contour" | "rio" | "wezterm" | "xterm-ghostty" | "xterm-kitty"
+            | "foot" => {
                 return Some(Self::TrueColor);
             }
             "linux" | "xterm" => {
@@ -201,11 +203,17 @@ fn env_var_normalized(var: &str) -> Option<String> {
 }
 
 fn is_env_var_truthy(var: &str) -> bool {
-    matches!(env_var_normalized(var).as_deref(), Some("1") | Some("true"))
+    env_var_normalized(var)
+        .map(|v| is_value_truthy(&v))
+        .unwrap_or(false)
 }
 
 fn is_env_var_non_empty(var: &str) -> bool {
     env_var_normalized(var)
         .map(|v| !v.is_empty())
         .unwrap_or(false)
+}
+
+fn is_value_truthy(val: &str) -> bool {
+    val == "1" || val == "true" || val == "yes"
 }
