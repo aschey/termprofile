@@ -4,7 +4,11 @@ use palette::{FromColor, Lab, Srgb, color_difference::EuclideanDistance};
 use crate::ColorSupport;
 
 impl ColorSupport {
-    pub fn adapt(&self, color: Color) -> Option<Color> {
+    pub fn adapt<C>(&self, color: C) -> Option<Color>
+    where
+        C: Into<Color>,
+    {
+        let color = color.into();
         if *self == Self::None {
             return None;
         }

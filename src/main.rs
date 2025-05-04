@@ -1,6 +1,6 @@
 use std::io::stdout;
 
-use term_color_format::ColorSupport;
+use term_color_adapter::ColorSupport;
 
 fn main() {
     let color_support = ColorSupport::detect(stdout());
