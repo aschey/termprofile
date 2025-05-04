@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anstyle = { version = "1", optional = true }
+palette = { version = "0.7", optional = true }
 
 [target.'cfg(windows)'.dependencies]
-os_info = { version = "3.10", default-features = false }
+os_info = { version = "3.10", default-features = false, optional = true }
+
+[features]
+windows-version = ["os_info"]
+convert = ["anstyle", "palette"]
