@@ -5,14 +5,14 @@ use super::{IsTerminal, TermVar, TermVars};
 #[test]
 fn default_terminal() {
     let vars = TermVars::default();
-    let support = ColorSupport::detect_with_vars(ForceTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(ColorSupport::None, support);
 }
 
 #[test]
 fn default_no_terminal() {
     let vars = TermVars::default();
-    let support = ColorSupport::detect_with_vars(ForceNoTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(ColorSupport::None, support);
 }
 
@@ -20,7 +20,7 @@ fn default_no_terminal() {
 fn truecolor() {
     let mut vars = TermVars::default();
     vars.meta.colorterm = TermVar::new(Some("24bit".to_string()));
-    let support = ColorSupport::detect_with_vars(ForceTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(ColorSupport::TrueColor, support);
 }
 
@@ -28,7 +28,7 @@ fn truecolor() {
 fn truecolor_no_term() {
     let mut vars = TermVars::default();
     vars.meta.colorterm = TermVar::new(Some("24bit".to_string()));
-    let support = ColorSupport::detect_with_vars(ForceNoTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(ColorSupport::None, support);
 }
 
@@ -36,7 +36,7 @@ fn truecolor_no_term() {
 fn ansi256_colorterm() {
     let mut vars = TermVars::default();
     vars.meta.colorterm = truthy_var();
-    let support = ColorSupport::detect_with_vars(ForceTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(ColorSupport::Ansi256, support);
 }
 
@@ -44,7 +44,7 @@ fn ansi256_colorterm() {
 fn ansi256_term() {
     let mut vars = TermVars::default();
     vars.meta.term = TermVar::new(Some("xterm-256color".to_string()));
-    let support = ColorSupport::detect_with_vars(ForceTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(ColorSupport::Ansi256, support);
 }
 
@@ -52,7 +52,7 @@ fn ansi256_term() {
 fn ansi256_no_term() {
     let mut vars = TermVars::default();
     vars.meta.term = TermVar::new(Some("xterm-256color".to_string()));
-    let support = ColorSupport::detect_with_vars(ForceNoTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(ColorSupport::None, support);
 }
 
@@ -60,7 +60,7 @@ fn ansi256_no_term() {
 fn no_color() {
     let mut vars = TermVars::default();
     vars.overrides.no_color = truthy_var();
-    let support = ColorSupport::detect_with_vars(ForceTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(ColorSupport::None, support);
 }
 
@@ -69,7 +69,7 @@ fn no_color_precedence() {
     let mut vars = TermVars::default();
     vars.overrides.no_color = truthy_var();
     vars.overrides.force_color = truthy_var();
-    let support = ColorSupport::detect_with_vars(ForceTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(ColorSupport::None, support);
 }
 
@@ -77,7 +77,7 @@ fn no_color_precedence() {
 fn force_color() {
     let mut vars = TermVars::default();
     vars.overrides.force_color = truthy_var();
-    let support = ColorSupport::detect_with_vars(ForceNoTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(ColorSupport::Ansi16, support);
 }
 
@@ -85,7 +85,7 @@ fn force_color() {
 fn clicolor_force() {
     let mut vars = TermVars::default();
     vars.overrides.clicolor_force = truthy_var();
-    let support = ColorSupport::detect_with_vars(ForceNoTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(ColorSupport::Ansi16, support);
 }
 
@@ -93,7 +93,7 @@ fn clicolor_force() {
 fn force_color_level_2() {
     let mut vars = TermVars::default();
     vars.overrides.force_color = TermVar::new(Some("2".to_string()));
-    let support = ColorSupport::detect_with_vars(ForceNoTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(ColorSupport::Ansi256, support);
 }
 
@@ -101,7 +101,7 @@ fn force_color_level_2() {
 fn force_color_level_3() {
     let mut vars = TermVars::default();
     vars.overrides.force_color = TermVar::new(Some("3".to_string()));
-    let support = ColorSupport::detect_with_vars(ForceNoTerminal, vars);
+    let support = ColorSupport::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(ColorSupport::TrueColor, support);
 }
 

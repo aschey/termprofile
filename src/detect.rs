@@ -148,14 +148,14 @@ impl WindowsVars {
 }
 
 impl ColorSupport {
-    pub fn detect<T>(output: T) -> Self
+    pub fn detect<T>(output: &T) -> Self
     where
         T: IsTerminal,
     {
         Self::detect_with_vars(output, TermVars::from_env())
     }
 
-    pub fn detect_with_vars<T>(output: T, vars: TermVars) -> Self
+    pub fn detect_with_vars<T>(output: &T, vars: TermVars) -> Self
     where
         T: IsTerminal,
     {
