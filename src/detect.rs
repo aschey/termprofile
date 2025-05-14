@@ -30,6 +30,7 @@ pub struct OverrideVars {
     pub force_color: TermVar,
     pub clicolor_force: TermVar,
     pub no_color: TermVar,
+    pub tty_force: TermVar,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -48,6 +49,8 @@ pub struct WindowsVars {
     pub ansicon_ver: TermVar,
     pub build_number: u32,
     pub os_version: u32,
+    // Note: Windows terminal developers recommend against using WT_SESSION
+    // https://github.com/Textualize/rich/issues/140
 }
 
 #[derive(Clone, Debug, Default)]
@@ -100,6 +103,7 @@ impl OverrideVars {
             no_color: TermVar::from_env("NO_COLOR"),
             force_color: TermVar::from_env("FORCE_COLOR"),
             clicolor_force: TermVar::from_env("CLICOLOR_FORCE"),
+            tty_force: TermVar::from_env("TTY_FORCE"),
         }
     }
 }
@@ -167,17 +171,10 @@ impl ColorSupport {
         {
             return env;
         }
-        if !output.is_terminal() {
+        if !detector.vars.overrides.tty_force.is_truthy() && !output.is_terminal() {
             return Self::None;
         }
-        if let Some(env) = detector.detect_term_vars() {
-            return env;
-        }
-        #[cfg(windows)]
-        if let Some(env) = detector.detect_windows_version() {
-            return env;
-        }
-        ColorSupport::None
+        detector.detect_term_vars()
     }
 }
 
@@ -198,17 +195,17 @@ impl Detector {
         let force_color = self
             .vars
             .overrides
-            .force_color
-            .or(&self.vars.overrides.clicolor_force);
+            .clicolor_force
+            .or(&self.vars.overrides.force_color);
 
         if force_color.is_truthy() {
-            if let Some(term) = self.detect_term_vars() {
-                if matches!(term, ColorSupport::Ansi256 | ColorSupport::TrueColor) {
-                    // If the terminal reports it has better color support, don't force it to use
-                    // basic ANSI.
-                    return Some(term);
-                }
+            let term = self.detect_term_vars();
+            if matches!(term, ColorSupport::Ansi256 | ColorSupport::TrueColor) {
+                // If the terminal reports it has better color support, don't force it to use
+                // basic ANSI.
+                return Some(term);
             }
+
             return Some(ColorSupport::Ansi16);
         }
 
@@ -255,35 +252,30 @@ impl Detector {
             return Some(ColorSupport::Ansi16);
         }
 
-        if self.vars.special.con_emu_ansi.value() == "ON" {
-            return Some(ColorSupport::TrueColor);
-        }
-
         None
     }
 
-    fn detect_term_vars(&self) -> Option<ColorSupport> {
+    fn detect_term_vars(&self) -> ColorSupport {
         let colorterm = self.vars.meta.colorterm.value();
         let term = self.vars.meta.term.value();
         let term_program = self.vars.meta.term_program.value();
 
-        if matches!(colorterm.as_str(), "24bit" | "truecolor") {
-            // New versions of screen do support truecolor, but it must be enabled explicitly and
-            // there doesn't appear to be an easy way to detect this.
-            if term.starts_with("screen") && term_program != "tmux" {
-                return Some(ColorSupport::Ansi256);
-            }
-            return Some(ColorSupport::TrueColor);
-        }
+        let mut profile = ColorSupport::None;
 
-        if self.vars.meta.colorterm.is_truthy() {
-            return Some(ColorSupport::Ansi256);
+        if term.is_empty() || term == "dumb" {
+            if cfg!(windows) {
+                if let Some(win_profile) = self.detect_windows() {
+                    profile = win_profile;
+                }
+            }
+        } else {
+            profile = ColorSupport::Ansi16;
         }
 
         match term_program.as_str() {
             "mintty" => {
                 // Supported as of 2015: https://github.com/mintty/mintty/commit/8e1f4c260b5e1b3311caf10e826d87c85b3c9433
-                return Some(ColorSupport::TrueColor);
+                return ColorSupport::TrueColor;
             }
             "iterm.app" => {
                 let term_program_version = self
@@ -296,35 +288,60 @@ impl Detector {
                     .and_then(|v| v.parse::<u32>().ok())
                     .unwrap_or(0);
                 if term_program_version >= 3 {
-                    return Some(ColorSupport::TrueColor);
+                    return ColorSupport::TrueColor;
                 } else {
-                    return Some(ColorSupport::Ansi256);
+                    return ColorSupport::Ansi256;
                 }
             }
-            "apple_terminal" => return Some(ColorSupport::Ansi256),
+            "apple_terminal" => return ColorSupport::Ansi256,
             _ => {}
         }
 
-        match term.as_str() {
-            "alacritty" | "contour" | "rio" | "wezterm" | "xterm-ghostty" | "xterm-kitty"
-            | "foot" => {
-                return Some(ColorSupport::TrueColor);
+        let term_normalized = term.split("-").last().unwrap_or_default();
+        match term_normalized {
+            "alacritty" | "contour" | "rio" | "wezterm" | "ghostty" | "kitty" | "foot" | "st"
+            | "direct" => {
+                return ColorSupport::TrueColor;
+            }
+            "256color" => {
+                profile = ColorSupport::Ansi256;
             }
             "linux" | "xterm" => {
-                return Some(ColorSupport::Ansi16);
+                profile = ColorSupport::Ansi16;
             }
-            "dumb" => {
-                return Some(ColorSupport::None);
+            "tmux" | "screen" => {
+                if profile < ColorSupport::Ansi256 {
+                    profile = ColorSupport::Ansi256;
+                }
             }
             _ => {}
         }
-        if term.contains("256color") {
-            return Some(ColorSupport::Ansi256);
-        }
-        if term.contains("color") || term.contains("ansi") {
-            return Some(ColorSupport::Ansi16);
+
+        // New versions of screen do support truecolor, but it must be enabled explicitly and
+        // there doesn't appear to be an easy way to detect this.
+        if (matches!(colorterm.as_str(), "24bit" | "truecolor")
+            || self.vars.meta.colorterm.is_truthy())
+            && !term.starts_with("screen")
+            && term_program != "tmux"
+        {
+            return ColorSupport::TrueColor;
         }
 
+        if (term.contains("color") || term.contains("ansi")) && profile < ColorSupport::Ansi16 {
+            profile = ColorSupport::Ansi16;
+        }
+
+        profile
+    }
+
+    fn detect_windows(&self) -> Option<ColorSupport> {
+        if self.vars.special.con_emu_ansi.value() == "ON" {
+            return Some(ColorSupport::TrueColor);
+        }
+        #[cfg(all(windows, feature = "windows-version"))]
+        if let Some(env) = detector.detect_windows_version() {
+            return env;
+        }
         None
     }
 

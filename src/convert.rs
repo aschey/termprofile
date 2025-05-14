@@ -1,4 +1,4 @@
-use anstyle::{Ansi256Color, Color};
+use anstyle::{Ansi256Color, AnsiColor, Color};
 use palette::{FromColor, Lab, Srgb, color_difference::EuclideanDistance};
 
 use crate::ColorSupport;
@@ -54,7 +54,26 @@ fn ansi256_to_ansi(ansi256_index: u8) -> Color {
             min_distance = distance;
         }
     }
-    Color::Ansi256(closest_ansi.into())
+    let ansi = match closest_ansi {
+        0 => AnsiColor::Black,
+        1 => AnsiColor::Red,
+        2 => AnsiColor::Green,
+        3 => AnsiColor::Yellow,
+        4 => AnsiColor::Blue,
+        5 => AnsiColor::Magenta,
+        6 => AnsiColor::Cyan,
+        7 => AnsiColor::White,
+        8 => AnsiColor::BrightBlack,
+        9 => AnsiColor::BrightRed,
+        10 => AnsiColor::BrightGreen,
+        11 => AnsiColor::BrightYellow,
+        12 => AnsiColor::BrightBlue,
+        13 => AnsiColor::BrightMagenta,
+        14 => AnsiColor::BrightCyan,
+        15 => AnsiColor::BrightWhite,
+        _ => unreachable!(),
+    };
+    Color::Ansi(ansi)
 }
 
 fn value_to_color_index(value: u8) -> usize {
@@ -69,18 +88,22 @@ fn value_to_color_index(value: u8) -> usize {
 
 fn rgb_to_ansi256(r: u8, g: u8, b: u8) -> u8 {
     let color = Srgb::new(r, g, b);
-    let r = value_to_color_index(r);
-    let g = value_to_color_index(g);
-    let b = value_to_color_index(b);
+    let qr = value_to_color_index(r);
+    let qg = value_to_color_index(g);
+    let qb = value_to_color_index(b);
 
-    let color_index = (36 * r + 6 * g + b) as u8;
-    let index_to_color_value: [u8; 5] = [0x0, 0x5f, 0x87, 0xaf, 0xff];
+    let color_index = (36 * qr + 6 * qg + qb) as u8;
+    let index_to_color_value: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
 
-    let cr = index_to_color_value[r];
-    let cg = index_to_color_value[g];
-    let cb = index_to_color_value[b];
+    let cr = index_to_color_value[qr];
+    let cg = index_to_color_value[qg];
+    let cb = index_to_color_value[qb];
 
-    let average = (r + g + b) / 3;
+    if cr == r && cg == b && cb == b {
+        return 16 + color_index;
+    }
+
+    let average = (qr + qg + qb) / 3;
     let gray_index = if average > 238 {
         23
     } else {

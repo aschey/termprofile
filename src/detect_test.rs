@@ -33,11 +33,11 @@ fn truecolor_no_term() {
 }
 
 #[test]
-fn ansi256_colorterm() {
+fn truecolor_truthy() {
     let mut vars = TermVars::default();
     vars.meta.colorterm = truthy_var();
     let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
-    assert_eq!(ColorSupport::Ansi256, support);
+    assert_eq!(ColorSupport::TrueColor, support);
 }
 
 #[test]
