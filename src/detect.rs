@@ -1,4 +1,8 @@
-use std::env;
+use std::{
+    env,
+    io::{self, Read},
+    process::{Command, Stdio},
+};
 
 use crate::ColorSupport;
 
@@ -21,6 +25,7 @@ pub struct TermVars {
     pub overrides: OverrideVars,
     pub meta: TermMetaVars,
     pub special: SpecialVars,
+    pub tmux: TmuxVars,
     pub windows: WindowsVars,
 }
 
@@ -72,12 +77,19 @@ pub struct SpecialVars {
     pub con_emu_ansi: TermVar,
 }
 
+#[derive(Clone, Debug, Default)]
+#[non_exhaustive]
+pub struct TmuxVars {
+    pub tmux_info: String,
+}
+
 impl TermVars {
     pub fn from_env() -> Self {
         Self {
             meta: TermMetaVars::from_env(),
             overrides: OverrideVars::from_env(),
             special: SpecialVars::from_env(),
+            tmux: TmuxVars::from_env(),
             #[cfg(all(windows, feature = "windows-version"))]
             windows: WindowsVars::from_os_info(),
             #[cfg(not(all(windows, feature = "windows-version")))]
@@ -126,6 +138,33 @@ impl SpecialVars {
             tf_build: TermVar::from_env("TF_BUILD"),
             con_emu_ansi: TermVar::from_env("ConEmuANSI"),
         }
+    }
+}
+
+impl TmuxVars {
+    pub fn from_env() -> Self {
+        Self::try_from_env().unwrap_or_default()
+    }
+
+    pub fn try_from_env() -> Result<Self, io::Error> {
+        let tmux = TermVar::from_env("TMUX");
+        let tmux_info = if !tmux.is_empty() {
+            let mut cmd = Command::new("tmux")
+                .arg("info")
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
+            cmd.wait()?;
+            let mut out = String::new();
+            cmd.stdout
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "stdout missing"))?
+                .read_to_string(&mut out)?;
+            out
+        } else {
+            String::new()
+        };
+
+        Ok(Self { tmux_info })
     }
 }
 
@@ -257,7 +296,7 @@ impl Detector {
 
     fn detect_term_vars(&self) -> ColorSupport {
         let colorterm = self.vars.meta.colorterm.value();
-        let term = self.vars.meta.term.value();
+        let mut term = self.vars.meta.term.value();
         let term_program = self.vars.meta.term_program.value();
 
         let mut profile = ColorSupport::None;
@@ -297,41 +336,64 @@ impl Detector {
             _ => {}
         }
 
-        let term_normalized = term.split("-").last().unwrap_or_default();
-        match term_normalized {
+        let mut is_screen = false;
+        if term.starts_with("screen.") {
+            term = term.replacen("screen.", "", 1);
+            is_screen = true;
+            profile = profile.max(ColorSupport::Ansi256);
+        }
+        let term_last = term.split("-").last().unwrap_or_default();
+        match term_last {
             "alacritty" | "contour" | "rio" | "wezterm" | "ghostty" | "kitty" | "foot" | "st"
             | "direct" => {
                 return ColorSupport::TrueColor;
             }
             "256color" => {
-                profile = ColorSupport::Ansi256;
+                profile = profile.max(ColorSupport::Ansi256);
             }
             "linux" | "xterm" => {
-                profile = ColorSupport::Ansi16;
-            }
-            "tmux" | "screen" => {
-                if profile < ColorSupport::Ansi256 {
-                    profile = ColorSupport::Ansi256;
-                }
+                profile = profile.max(ColorSupport::Ansi16);
             }
             _ => {}
+        }
+
+        if let Some(tmux_profile) = self.detect_tmux() {
+            profile = profile.max(tmux_profile);
         }
 
         // New versions of screen do support truecolor, but it must be enabled explicitly and
         // there doesn't appear to be an easy way to detect this.
         if (matches!(colorterm.as_str(), "24bit" | "truecolor")
             || self.vars.meta.colorterm.is_truthy())
-            && !term.starts_with("screen")
+            && !is_screen
             && term_program != "tmux"
+            && !term.starts_with("tmux")
         {
             return ColorSupport::TrueColor;
         }
 
-        if (term.contains("color") || term.contains("ansi")) && profile < ColorSupport::Ansi16 {
-            profile = ColorSupport::Ansi16;
+        if term.contains("color") || term.contains("ansi") {
+            profile = profile.max(ColorSupport::Ansi16);
         }
 
         profile
+    }
+
+    fn detect_tmux(&self) -> Option<ColorSupport> {
+        if !self.vars.meta.term.value().starts_with("tmux")
+            && self.vars.tmux.tmux_info.is_empty()
+            && self.vars.meta.term_program.value() != "tmux"
+        {
+            return None;
+        }
+
+        let tmux_info = self.vars.tmux.tmux_info.split("\n");
+        for line in tmux_info {
+            if (line.contains("Tc") || line.contains("RGB")) && line.contains("true") {
+                return Some(ColorSupport::TrueColor);
+            }
+        }
+        Some(ColorSupport::Ansi256)
     }
 
     fn detect_windows(&self) -> Option<ColorSupport> {
@@ -376,12 +438,19 @@ impl Detector {
 pub struct TermVar(Option<String>);
 
 impl TermVar {
-    fn new(value: Option<String>) -> Self {
+    pub fn new<S>(value: S) -> Self
+    where
+        S: Into<String>,
+    {
+        Self::new_internal(Some(value.into()))
+    }
+
+    fn new_internal(value: Option<String>) -> Self {
         Self(value.map(|v| v.trim_ascii().to_lowercase()))
     }
 
     fn from_env(var: &str) -> Self {
-        Self::new(env::var(var).ok())
+        Self::new_internal(env::var(var).ok())
     }
 
     fn is_truthy(&self) -> bool {

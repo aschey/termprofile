@@ -13,3 +13,6 @@ os_info = { version = "3.10", default-features = false, optional = true }
 [features]
 windows-version = ["os_info"]
 convert = ["anstyle", "palette"]
+
+[dev-dependencies]
+rstest = "0.25.0"
