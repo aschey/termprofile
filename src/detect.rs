@@ -148,7 +148,9 @@ impl TmuxVars {
 
     pub fn try_from_env() -> Result<Self, io::Error> {
         let tmux = TermVar::from_env("TMUX");
-        let tmux_info = if !tmux.is_empty() {
+        let term = TermVar::from_env("TERM");
+        // tmux var may be missing if using over ssh
+        let tmux_info = if !tmux.is_empty() || term.value().starts_with("tmux") {
             let mut cmd = Command::new("tmux")
                 .arg("info")
                 .stdout(Stdio::piped())

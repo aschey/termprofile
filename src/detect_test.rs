@@ -43,14 +43,6 @@ fn truecolor_truthy() {
 }
 
 #[test]
-fn ansi256_term() {
-    let mut vars = TermVars::default();
-    vars.meta.term = TermVar::new("xterm-256color");
-    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
-    assert_eq!(ColorSupport::Ansi256, support);
-}
-
-#[test]
 fn ansi256_no_term() {
     let mut vars = TermVars::default();
     vars.meta.term = TermVar::new("xterm-256color");
@@ -118,6 +110,26 @@ fn truecolor_term(#[case] term: &str) {
     assert_eq!(ColorSupport::TrueColor, support);
 }
 
+#[rstest]
+#[case("xterm-256color")]
+#[case("screen.xterm-256color")]
+fn ansi256_term(#[case] term: &str) {
+    let mut vars = TermVars::default();
+    vars.meta.term = TermVar::new(term);
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(ColorSupport::Ansi256, support);
+}
+
+#[rstest]
+#[case("linux")]
+#[case("xterm")]
+fn ansi16_term(#[case] term: &str) {
+    let mut vars = TermVars::default();
+    vars.meta.term = TermVar::new(term);
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(ColorSupport::Ansi16, support);
+}
+
 #[test]
 fn screen() {
     let mut vars = TermVars::default();
@@ -140,7 +152,25 @@ fn tmux_term() {
 fn tmux_term_program() {
     let mut vars = TermVars::default();
     vars.meta.term_program = TermVar::new("tmux");
+    vars.meta.term = TermVar::new("xterm-256color");
     vars.meta.colorterm = TermVar::new("truecolor");
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(ColorSupport::Ansi256, support);
+}
+
+#[test]
+fn tmux_truecolor() {
+    let mut vars = TermVars::default();
+    vars.meta.term = TermVar::new("tmux-256color");
+    vars.tmux.tmux_info = "Tc: (flag) true".to_string();
+    let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(ColorSupport::TrueColor, support);
+}
+
+#[test]
+fn apple_terminal() {
+    let mut vars = TermVars::default();
+    vars.meta.term_program = TermVar::new("apple_terminal");
     let support = ColorSupport::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(ColorSupport::Ansi256, support);
 }
