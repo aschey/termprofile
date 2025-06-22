@@ -1,11 +1,12 @@
 [package]
-name = "term-color-adapter"
+name = "termprofile"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 anstyle = { version = "1", optional = true }
 palette = { version = "0.7", optional = true }
+terminfo = "0.9.0"
 
 [target.'cfg(windows)'.dependencies]
 os_info = { version = "3.10", default-features = false, optional = true }

@@ -1,8 +1,8 @@
 use std::io::stdout;
 
-use term_color_adapter::ColorSupport;
+use termprofile::TermProfile;
 
 fn main() {
-    let color_support = ColorSupport::detect(&stdout());
+    let color_support = TermProfile::detect(&stdout());
     println!("{color_support:?}");
 }

@@ -1,15 +1,15 @@
 use anstyle::{Ansi256Color, AnsiColor, Color};
 use palette::{FromColor, Lab, Srgb, color_difference::EuclideanDistance};
 
-use crate::ColorSupport;
+use crate::TermProfile;
 
-impl ColorSupport {
+impl TermProfile {
     pub fn adapt<C>(&self, color: C) -> Option<Color>
     where
         C: Into<Color>,
     {
         let color = color.into();
-        if *self == Self::None {
+        if *self < Self::Ansi16 {
             return None;
         }
         match color {
