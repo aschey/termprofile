@@ -1,3 +1,4 @@
+mod ansi_256_to_16;
 #[cfg(feature = "convert")]
 mod convert;
 mod detect;
