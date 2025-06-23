@@ -1,8 +1,6 @@
-use std::{
-    env,
-    io::{self, Read},
-    process::{Command, Stdio},
-};
+use std::env;
+use std::io::{self, Read};
+use std::process::{Command, Stdio};
 
 use terminfo::{Database, capability};
 

@@ -1,7 +1,9 @@
 use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor};
-use palette::{FromColor, Oklab, Srgb, color_difference::EuclideanDistance};
+use palette::color_difference::EuclideanDistance;
+use palette::{FromColor, Oklab, Srgb};
 
-use crate::{TermProfile, ansi_256_to_16::ANSI_256_TO_16};
+use crate::TermProfile;
+use crate::ansi_256_to_16::ANSI_256_TO_16;
 
 impl TermProfile {
     pub fn adapt<C>(&self, color: C) -> Option<Color>

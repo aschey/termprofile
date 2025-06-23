@@ -1,4 +1,5 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::collections::HashMap;
+use std::sync::LazyLock;
 
 pub(crate) static ANSI_256_TO_16: LazyLock<HashMap<u8, u8>> = LazyLock::new(|| {
     HashMap::from_iter([

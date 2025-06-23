@@ -1,8 +1,7 @@
 use rstest::rstest;
 
-use crate::TermProfile;
-
 use super::{IsTerminal, TermVar, TermVars};
+use crate::TermProfile;
 
 #[test]
 fn default_terminal() {
