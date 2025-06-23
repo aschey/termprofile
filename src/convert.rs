@@ -1,5 +1,5 @@
-use anstyle::{Ansi256Color, AnsiColor, Color};
-use palette::{FromColor, Lab, Srgb, color_difference::EuclideanDistance};
+use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor};
+use palette::{FromColor, Lab, Oklab, Srgb, color_difference::EuclideanDistance};
 
 use crate::TermProfile;
 
@@ -25,7 +25,7 @@ impl TermProfile {
                 if *self == Self::TrueColor {
                     Some(color)
                 } else {
-                    let ansi256_index = rgb_to_ansi256(rgb_color.r(), rgb_color.g(), rgb_color.g());
+                    let ansi256_index = rgb_to_ansi256(rgb_color);
                     if *self == Self::Ansi256 {
                         Some(Color::Ansi256(ansi256_index.into()))
                     } else {
@@ -37,17 +37,17 @@ impl TermProfile {
     }
 }
 
-fn ansi256_to_lab(ansi256_index: u8) -> Lab {
+fn ansi256_to_oklab(ansi256_index: u8) -> Oklab {
     let srgb: Srgb<u8> = ANSI_HEX[ansi256_index as usize].parse().unwrap();
-    Lab::from_color(srgb.into_linear())
+    Oklab::from_color(srgb.into_linear())
 }
 
 fn ansi256_to_ansi(ansi256_index: u8) -> Color {
-    let reference_lab = ansi256_to_lab(ansi256_index);
+    let reference_lab = ansi256_to_oklab(ansi256_index);
     let mut min_distance = f32::MAX;
     let mut closest_ansi = 0u8;
     for i in 0..16u8 {
-        let lab = ansi256_to_lab(i);
+        let lab = ansi256_to_oklab(i);
         let distance = reference_lab.distance(lab);
         if distance < min_distance {
             closest_ansi = i;
@@ -86,11 +86,11 @@ fn value_to_color_index(value: u8) -> usize {
     }
 }
 
-fn rgb_to_ansi256(r: u8, g: u8, b: u8) -> u8 {
-    let color = Srgb::new(r, g, b);
-    let qr = value_to_color_index(r);
-    let qg = value_to_color_index(g);
-    let qb = value_to_color_index(b);
+fn rgb_to_ansi256(color: RgbColor) -> u8 {
+    let color = Srgb::new(color.r(), color.b(), color.g());
+    let qr = value_to_color_index(color.red);
+    let qg = value_to_color_index(color.green);
+    let qb = value_to_color_index(color.blue);
 
     let color_index = (36 * qr + 6 * qg + qb) as u8;
     let index_to_color_value: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
@@ -99,17 +99,17 @@ fn rgb_to_ansi256(r: u8, g: u8, b: u8) -> u8 {
     let cg = index_to_color_value[qg];
     let cb = index_to_color_value[qb];
 
-    if cr == r && cg == b && cb == b {
+    if cr == color.red && cg == color.green && cb == color.blue {
         return 16 + color_index;
     }
 
-    let average = (qr + qg + qb) / 3;
+    let average = ((color.red as u32 + color.green as u32 + color.blue as u32) / 3) as u8;
     let gray_index = if average > 238 {
         23
     } else {
         (average - 3) / 10
     };
-    let gray_value = 8 + 10 * gray_index as u8;
+    let gray_value = 8 + 10 * gray_index;
 
     let color2 = Srgb::new(cr, cg, cb);
     let gray2 = Srgb::new(gray_value, gray_value, gray_value);
@@ -120,7 +120,7 @@ fn rgb_to_ansi256(r: u8, g: u8, b: u8) -> u8 {
     if color_distance <= gray_distance {
         16 + color_index
     } else {
-        232 + gray_index as u8
+        232 + gray_index
     }
 }
 
@@ -158,3 +158,7 @@ const ANSI_HEX: [&str; 256] = [
     "#585858", "#626262", "#6c6c6c", "#767676", "#808080", "#8a8a8a", "#949494", "#9e9e9e",
     "#a8a8a8", "#b2b2b2", "#bcbcbc", "#c6c6c6", "#d0d0d0", "#dadada", "#e4e4e4", "#eeeeee",
 ];
+
+#[cfg(test)]
+#[path = "./convert_test.rs"]
+mod convert_test;
