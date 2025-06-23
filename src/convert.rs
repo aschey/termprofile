@@ -1,5 +1,5 @@
 use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor};
-use palette::{FromColor, Lab, Oklab, Srgb, color_difference::EuclideanDistance};
+use palette::{FromColor, Oklab, Srgb, color_difference::EuclideanDistance};
 
 use crate::TermProfile;
 
@@ -114,9 +114,9 @@ fn rgb_to_ansi256(color: RgbColor) -> u8 {
     let color2 = Srgb::new(cr, cg, cb);
     let gray2 = Srgb::new(gray_value, gray_value, gray_value);
 
-    let lab_color: Lab = Lab::from_color(color.into_linear());
-    let color_distance = lab_color.distance(Lab::from_color(color2.into_linear()));
-    let gray_distance = lab_color.distance(Lab::from_color(gray2.into_linear()));
+    let oklab_color: Oklab = Oklab::from_color(color.into_linear());
+    let color_distance = oklab_color.distance(Oklab::from_color(color2.into_linear()));
+    let gray_distance = oklab_color.distance(Oklab::from_color(gray2.into_linear()));
     if color_distance <= gray_distance {
         16 + color_index
     } else {
