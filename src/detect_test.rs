@@ -223,6 +223,85 @@ fn terminfo_max_colors() {
     assert_eq!(TermProfile::TrueColor, support);
 }
 
+#[test]
+fn special_var_truecolor() {
+    let mut vars = TermVars::default();
+    vars.special.google_cloud_shell = truthy_var();
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::TrueColor, support);
+}
+
+#[test]
+fn special_var_ansi() {
+    let mut vars = TermVars::default();
+    vars.special.travis = truthy_var();
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::Ansi16, support);
+}
+
+#[test]
+fn windows_con_emu() {
+    let mut vars = TermVars::default();
+    vars.windows.is_windows = true;
+    vars.special.con_emu_ansi = TermVar::new("ON");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::TrueColor, support);
+}
+
+#[test]
+fn windows_version_old() {
+    let mut vars = TermVars::default();
+    vars.windows.is_windows = true;
+    vars.windows.build_number = 10585;
+    vars.windows.os_version = 10;
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::Ascii, support);
+}
+
+#[test]
+fn windows_version_old_ansicon() {
+    let mut vars = TermVars::default();
+    vars.windows.is_windows = true;
+    vars.windows.build_number = 10585;
+    vars.windows.os_version = 10;
+    vars.windows.ansicon = truthy_var();
+    vars.windows.ansicon_ver = TermVar::new("181");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::Ansi256, support);
+}
+
+#[test]
+fn windows_version_old_ansicon_old() {
+    let mut vars = TermVars::default();
+    vars.windows.is_windows = true;
+    vars.windows.build_number = 10585;
+    vars.windows.os_version = 10;
+    vars.windows.ansicon = truthy_var();
+    vars.windows.ansicon_ver = TermVar::new("180");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::Ansi16, support);
+}
+
+#[test]
+fn windows_version_new_build_number_old() {
+    let mut vars = TermVars::default();
+    vars.windows.is_windows = true;
+    vars.windows.build_number = 14930;
+    vars.windows.os_version = 10;
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::Ansi256, support);
+}
+
+#[test]
+fn windows_version_new() {
+    let mut vars = TermVars::default();
+    vars.windows.is_windows = true;
+    vars.windows.build_number = 14931;
+    vars.windows.os_version = 10;
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::TrueColor, support);
+}
+
 fn truthy_var() -> TermVar {
     TermVar::new("1")
 }

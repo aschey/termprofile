@@ -55,6 +55,7 @@ pub struct WindowsVars {
     pub ansicon_ver: TermVar,
     pub build_number: u32,
     pub os_version: u32,
+    pub is_windows: bool,
     // Note: Windows terminal developers recommend against using WT_SESSION
     // https://github.com/Textualize/rich/issues/140
 }
@@ -217,6 +218,7 @@ impl WindowsVars {
             ansicon_ver: TermVar::from_env("ANSICON_VER"),
             os_version,
             build_number,
+            is_windows: true,
         }
     }
 }
@@ -338,10 +340,8 @@ impl Detector {
         let mut profile = TermProfile::Ascii;
 
         if term.is_empty() || term == "dumb" {
-            if cfg!(windows) {
-                if let Some(win_profile) = self.detect_windows() {
-                    profile = win_profile;
-                }
+            if let Some(win_profile) = self.detect_windows() {
+                profile = win_profile;
             }
         } else {
             profile = TermProfile::Ansi16;
@@ -448,17 +448,18 @@ impl Detector {
     }
 
     fn detect_windows(&self) -> Option<TermProfile> {
-        if self.vars.special.con_emu_ansi.value() == "ON" {
+        if !self.vars.windows.is_windows {
+            return None;
+        }
+        if self.vars.special.con_emu_ansi.value() == "on" {
             return Some(TermProfile::TrueColor);
         }
-        #[cfg(all(windows, feature = "windows-version"))]
-        if let Some(env) = detector.detect_windows_version() {
-            return env;
+        if let Some(env) = self.detect_windows_version() {
+            return Some(env);
         }
         None
     }
 
-    #[cfg(all(windows, feature = "windows-version"))]
     fn detect_windows_version(&self) -> Option<TermProfile> {
         if self.vars.windows.os_version == 0 {
             return None;
@@ -466,7 +467,7 @@ impl Detector {
 
         if self.vars.windows.build_number < 10586 || self.vars.windows.os_version < 10 {
             if self.vars.windows.ansicon.is_empty() {
-                return Some(TermProfile::None);
+                return Some(TermProfile::Ascii);
             } else {
                 let ansicon_version = self.vars.windows.ansicon_ver.value().parse::<u32>();
                 if ansicon_version.map(|v| v >= 181).unwrap_or(false) {
