@@ -53,8 +53,8 @@ pub struct TermMetaVars {
 pub struct WindowsVars {
     pub ansicon: TermVar,
     pub ansicon_ver: TermVar,
-    pub build_number: u32,
-    pub os_version: u32,
+    pub build_number: u64,
+    pub os_version: u64,
     pub is_windows: bool,
     // Note: Windows terminal developers recommend against using WT_SESSION
     // https://github.com/Textualize/rich/issues/140
