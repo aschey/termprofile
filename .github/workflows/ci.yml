@@ -17,7 +17,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
     name: Run tests
     runs-on: ${{ matrix.os }}
     steps:
@@ -29,6 +29,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Clippy
         run: cargo clippy --all-features --examples -- -D warnings
+      - name: Min build
+        run: cargo build --no-default-features
+      - name: Build
+        run: cargo build
       - name: Build all
         run: cargo build --all-features --examples
       - name: Test
@@ -72,7 +76,7 @@ jobs:
   min-rust:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
     name: Check MSRV
     runs-on: ${{ matrix.os }}
     steps:

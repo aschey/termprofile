@@ -2,8 +2,6 @@ use std::env;
 use std::io::{self, Read};
 use std::process::{Command, Stdio};
 
-use terminfo::{Database, capability};
-
 use crate::TermProfile;
 
 pub trait IsTerminal {
@@ -93,11 +91,12 @@ pub struct TerminfoVars {
 }
 
 impl TerminfoVars {
+    #[cfg(feature = "terminfo")]
     fn from_env() -> Self {
-        if let Ok(info) = Database::from_env() {
+        if let Ok(info) = terminfo::Database::from_env() {
             Self {
-                truecolor: info.get::<capability::TrueColor>().map(|t| t.0),
-                max_colors: info.get::<capability::MaxColors>().map(|c| c.0),
+                truecolor: info.get::<terminfo::capability::TrueColor>().map(|t| t.0),
+                max_colors: info.get::<terminfo::capability::MaxColors>().map(|c| c.0),
             }
         } else {
             Self {
@@ -105,6 +104,11 @@ impl TerminfoVars {
                 max_colors: None,
             }
         }
+    }
+
+    #[cfg(not(feature = "terminfo"))]
+    fn from_env() -> Self {
+        Self::default()
     }
 }
 
@@ -116,10 +120,7 @@ impl TermVars {
             special: SpecialVars::from_env(),
             tmux: TmuxVars::from_env(),
             terminfo: TerminfoVars::from_env(),
-            #[cfg(all(windows, feature = "windows-version"))]
-            windows: WindowsVars::from_os_info(),
-            #[cfg(not(all(windows, feature = "windows-version")))]
-            windows: WindowsVars::default(),
+            windows: WindowsVars::from_env(),
         }
     }
 }
@@ -202,7 +203,7 @@ impl TmuxVars {
 
 impl WindowsVars {
     #[cfg(all(windows, feature = "windows-version"))]
-    pub fn from_os_info() -> Self {
+    pub fn from_env() -> Self {
         use os_info::Version;
         let info = os_info::get();
         let windows_version = info.version();
@@ -220,6 +221,11 @@ impl WindowsVars {
             build_number,
             is_windows: true,
         }
+    }
+
+    #[cfg(not(all(windows, feature = "windows-version")))]
+    fn from_env() -> Self {
+        Self::default()
     }
 }
 
