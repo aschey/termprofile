@@ -200,6 +200,15 @@ fn apple_terminal() {
 }
 
 #[test]
+fn iterm() {
+    let mut vars = TermVars::default();
+    vars.meta.term_program = TermVar::new("iterm.app");
+    vars.meta.term_program_version = TermVar::new("3.0");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::TrueColor, support);
+}
+
+#[test]
 fn terminfo_truecolor() {
     let mut vars = TermVars::default();
     vars.terminfo.truecolor = Some(true);
