@@ -16,13 +16,7 @@ impl TermProfile {
         }
         match color {
             Color::Ansi(_) => Some(color),
-            Color::Ansi256(Ansi256Color(index)) => {
-                if *self == Self::Ansi16 && index > 15 {
-                    Some(ansi256_to_ansi(index))
-                } else {
-                    Some(color)
-                }
-            }
+            Color::Ansi256(Ansi256Color(index)) => Some(ansi256_to_ansi(index)),
             Color::Rgb(rgb_color) => {
                 if *self == Self::TrueColor {
                     Some(color)
