@@ -20,4 +20,7 @@ convert = ["dep:anstyle", "dep:palette"]
 terminfo = ["dep:terminfo"]
 
 [dev-dependencies]
+anstyle-crossterm = "4.0.1"
+crossterm = "0.29.0"
+rand = "0.9.1"
 rstest = "0.25.0"

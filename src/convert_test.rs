@@ -5,6 +5,7 @@ use crate::TermProfile;
 
 #[rstest]
 #[case(RgbColor(220, 90, 90), Ansi256Color(167))]
+#[case(RgbColor(20, 73, 18), Ansi256Color(22))]
 #[case(RgbColor(255, 0, 0), Ansi256Color(196))]
 #[case(RgbColor(255, 255, 255), Ansi256Color(231))]
 #[case(RgbColor(250, 250, 250), Ansi256Color(231))]
@@ -16,6 +17,7 @@ fn rgb_to_ansi256(#[case] in_color: RgbColor, #[case] out_color: Ansi256Color) {
 
 #[rstest]
 #[case(RgbColor(220, 90, 90), AnsiColor::BrightRed)]
+#[case(RgbColor(20, 73, 18), AnsiColor::Green)]
 #[case(RgbColor(255, 0, 0), AnsiColor::BrightRed)]
 #[case(RgbColor(255, 255, 255), AnsiColor::BrightWhite)]
 #[case(RgbColor(0, 0, 0), AnsiColor::Black)]
