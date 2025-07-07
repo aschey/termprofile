@@ -24,3 +24,11 @@ anstyle-crossterm = "4.0.1"
 crossterm = "0.29.0"
 rand = "0.9.1"
 rstest = "0.25.0"
+
+[[example]]
+name = "convert"
+required-features = ["convert"]
+
+[[example]]
+name = "256_all"
+required-features = ["convert"]

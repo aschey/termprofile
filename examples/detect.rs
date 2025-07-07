@@ -4,5 +4,5 @@ use termprofile::TermProfile;
 
 fn main() {
     let profile = TermProfile::detect(&stdout());
-    println!("{profile:?}");
+    println!("Detected profile: {profile:?}");
 }
