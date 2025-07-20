@@ -225,7 +225,13 @@ impl WindowsVars {
 
     #[cfg(not(all(windows, feature = "windows-version")))]
     fn from_env() -> Self {
-        Self::default()
+        Self {
+            ansicon: TermVar::from_env("ANSICON"),
+            ansicon_ver: TermVar::from_env("ANSICON_VER"),
+            os_version: 0,
+            build_number: 0,
+            is_windows: true,
+        }
     }
 }
 
