@@ -20,7 +20,7 @@ fn main() {
 }
 
 fn print_color(profile: TermProfile, color: Color) {
-    let color = profile.adapt(color);
+    let color = profile.adapt_color(color);
     if let Some(color) = color {
         let style = to_crossterm(Style::new().fg_color(Some(color)));
         println!("{}", style.apply(color_to_str(&color)));

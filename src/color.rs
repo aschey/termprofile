@@ -33,7 +33,7 @@ where
             return Some(ansi_16.clone().into());
         }
 
-        profile.adapt(self.default.clone())
+        profile.adapt_color(self.default.clone())
     }
 }
 
@@ -55,7 +55,7 @@ where
         }
 
         if let Some(default) = self.default.clone().into() {
-            profile.adapt(default)
+            profile.adapt_color(default)
         } else {
             None
         }

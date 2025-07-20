@@ -1,4 +1,4 @@
-use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor};
+use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
 use palette::color_difference::ImprovedCiede2000;
 use palette::{FromColor, Lab, Srgb};
 
@@ -6,7 +6,7 @@ use crate::TermProfile;
 use crate::ansi_256_to_16::ANSI_256_TO_16;
 
 impl TermProfile {
-    pub fn adapt<C>(&self, color: C) -> Option<Color>
+    pub fn adapt_color<C>(&self, color: C) -> Option<Color>
     where
         C: Into<Color>,
     {
@@ -30,6 +30,24 @@ impl TermProfile {
                 }
             }
         }
+    }
+
+    pub fn adapt_style<S>(&self, style: S) -> Style
+    where
+        S: Into<Style>,
+    {
+        if *self == Self::NoTty {
+            return Style::new();
+        }
+        let mut style = style.into();
+
+        if let Some(color) = style.get_fg_color() {
+            style = style.fg_color(self.adapt_color(color));
+        }
+        if let Some(color) = style.get_bg_color() {
+            style = style.bg_color(self.adapt_color(color));
+        }
+        style
     }
 }
 

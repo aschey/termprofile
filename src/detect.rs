@@ -4,6 +4,10 @@ use std::process::{Command, Stdio};
 
 use crate::TermProfile;
 
+// Rules
+// https://bixense.com/clicolors/
+// https://no-color.org/
+
 pub trait IsTerminal {
     fn is_terminal(&self) -> bool;
 }
@@ -33,6 +37,7 @@ pub struct TermVars {
 pub struct OverrideVars {
     pub force_color: TermVar,
     pub clicolor_force: TermVar,
+    pub clicolor: TermVar,
     pub no_color: TermVar,
     pub tty_force: TermVar,
 }
@@ -145,6 +150,7 @@ impl OverrideVars {
         Self {
             no_color: TermVar::from_env("NO_COLOR"),
             force_color: TermVar::from_env("FORCE_COLOR"),
+            clicolor: TermVar::from_env("CLICOLOR"),
             clicolor_force: TermVar::from_env("CLICOLOR_FORCE"),
             tty_force: TermVar::from_env("TTY_FORCE"),
         }
@@ -248,22 +254,22 @@ impl TermProfile {
         T: IsTerminal,
     {
         let detector = Detector { vars };
-        let force_color = detector.detect_force_color();
-        if (!output.is_terminal() || detector.vars.meta.is_dumb())
-            && !detector.vars.overrides.tty_force.is_truthy()
-            && force_color < Some(Self::Ansi16)
-        {
-            return Self::NoTty;
-        }
-
-        if let Some(env) = detector
-            .detect_no_color()
-            .or(force_color)
-            .or_else(|| detector.detect_special_cases())
+        let profile = detector.detect_tty(output);
+        if let Some(env) = detector.detect_no_color()
+            && profile > TermProfile::NoTty
         {
             return env;
         }
-        detector.detect_term_vars()
+        if let Some(env) = detector.detect_force_color() {
+            return env;
+        }
+
+        // Only NO_COLOR/FORCE_COLOR stuff can override no_tty
+        if profile == TermProfile::NoTty {
+            return profile;
+        }
+
+        detector.detect_default_cases()
     }
 }
 
@@ -272,6 +278,16 @@ struct Detector {
 }
 
 impl Detector {
+    fn detect_tty<T>(&self, output: &T) -> TermProfile
+    where
+        T: IsTerminal,
+    {
+        if !self.vars.overrides.tty_force.is_truthy() && !output.is_terminal() {
+            TermProfile::NoTty
+        } else {
+            TermProfile::Ascii
+        }
+    }
     fn detect_no_color(&self) -> Option<TermProfile> {
         if self.vars.overrides.no_color.is_truthy() {
             Some(TermProfile::Ascii)
@@ -281,6 +297,11 @@ impl Detector {
     }
 
     fn detect_force_color(&self) -> Option<TermProfile> {
+        let mut profile = if self.vars.overrides.clicolor.is_truthy() {
+            Some(TermProfile::Ansi16)
+        } else {
+            None
+        };
         let force_color = self
             .vars
             .overrides
@@ -288,24 +309,27 @@ impl Detector {
             .or(&self.vars.overrides.force_color);
 
         if force_color.is_truthy() {
-            let term = self.detect_term_vars();
-            if matches!(term, TermProfile::Ansi256 | TermProfile::TrueColor) {
-                // If the terminal reports it has better color support, don't force it to use
-                // basic ANSI.
-                return Some(term);
-            }
-
-            return Some(TermProfile::Ansi16);
+            profile = profile.max(Some(TermProfile::Ansi16));
         }
 
-        let level: u32 = force_color.value().parse().ok()?;
-        match level {
-            0 => Some(TermProfile::Ascii),
-            1 => Some(TermProfile::Ansi16),
-            2 => Some(TermProfile::Ansi256),
-            3 => Some(TermProfile::TrueColor),
-            _ => None,
+        match force_color.value().to_lowercase().as_str() {
+            "ansi" | "ansi16" => return Some(TermProfile::Ansi16),
+            "ansi256" => return Some(TermProfile::Ansi256),
+            "truecolor" => return Some(TermProfile::TrueColor),
+            _ => {}
+        };
+
+        if self.vars.overrides.clicolor.is_truthy() && !self.vars.meta.is_dumb() {
+            profile = profile.max(Some(TermProfile::Ansi16));
         }
+
+        profile.map(|p| p.max(self.detect_default_cases()))
+    }
+
+    fn detect_default_cases(&self) -> TermProfile {
+        self.detect_special_cases()
+            .unwrap_or(TermProfile::Ascii)
+            .max(self.detect_term_vars())
     }
 
     fn detect_special_cases(&self) -> Option<TermProfile> {

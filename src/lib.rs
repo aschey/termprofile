@@ -1,3 +1,4 @@
+#[cfg(feature = "convert")]
 mod ansi_256_to_16;
 #[cfg(feature = "convert")]
 mod color;

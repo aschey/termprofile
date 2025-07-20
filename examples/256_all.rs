@@ -8,7 +8,7 @@ fn main() {
         let color = Color::Ansi256(Ansi256Color(i));
         print!("{} ", get_style(color).apply(format!("original: {i}")));
 
-        let adapted = TermProfile::Ansi16.adapt(color).unwrap();
+        let adapted = TermProfile::Ansi16.adapt_color(color).unwrap();
         let Color::Ansi(ansi) = adapted else {
             unreachable!()
         };

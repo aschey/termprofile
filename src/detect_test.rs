@@ -75,7 +75,7 @@ fn force_color() {
 }
 
 #[test]
-fn force_color_truecolor_override() {
+fn force_color_override() {
     let mut vars = TermVars::default();
     vars.overrides.force_color = truthy_var();
     vars.meta.term = TermVar::new("xterm-256color");
@@ -92,7 +92,7 @@ fn clicolor_force() {
 }
 
 #[test]
-fn force_color_level_0() {
+fn force_color_0() {
     let mut vars = TermVars::default();
     vars.overrides.force_color = TermVar::new("0");
     let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
@@ -100,27 +100,61 @@ fn force_color_level_0() {
 }
 
 #[test]
-fn force_color_level_1() {
+fn force_color_level_truthy() {
     let mut vars = TermVars::default();
-    vars.overrides.force_color = TermVar::new("1");
+    vars.overrides.force_color = truthy_var();
     let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(TermProfile::Ansi16, support);
 }
 
 #[test]
-fn force_color_level_2() {
+fn force_color_level_ansi_basic() {
     let mut vars = TermVars::default();
-    vars.overrides.force_color = TermVar::new("2");
+    vars.overrides.force_color = TermVar::new("ansi");
+    let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
+    assert_eq!(TermProfile::Ansi16, support);
+}
+
+#[test]
+fn force_color_level_ansi256() {
+    let mut vars = TermVars::default();
+    vars.overrides.force_color = TermVar::new("ansi256");
     let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(TermProfile::Ansi256, support);
 }
 
 #[test]
-fn force_color_level_3() {
+fn force_color_truecolor() {
     let mut vars = TermVars::default();
-    vars.overrides.force_color = TermVar::new("3");
+    vars.overrides.force_color = TermVar::new("truecolor");
     let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(TermProfile::TrueColor, support);
+}
+
+#[test]
+fn force_color_extended_override() {
+    let mut vars = TermVars::default();
+    vars.overrides.force_color = TermVar::new("ansi256");
+    vars.meta.colorterm = truthy_var();
+    let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
+    assert_eq!(TermProfile::Ansi256, support);
+}
+
+#[test]
+fn clicolor() {
+    let mut vars = TermVars::default();
+    vars.overrides.clicolor = truthy_var();
+    let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
+    assert_eq!(TermProfile::Ansi16, support);
+}
+
+#[test]
+fn clicolor_override() {
+    let mut vars = TermVars::default();
+    vars.overrides.clicolor = truthy_var();
+    vars.meta.term = TermVar::new("xterm-256color");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::Ansi256, support);
 }
 
 #[rstest]
