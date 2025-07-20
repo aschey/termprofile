@@ -10,7 +10,7 @@ impl TermProfile {
     where
         C: Into<Color>,
     {
-        let color = color.into();
+        let color: Color = color.into();
         if *self < Self::Ansi16 {
             return None;
         }
@@ -39,13 +39,16 @@ impl TermProfile {
         if *self == Self::NoTty {
             return Style::new();
         }
-        let mut style = style.into();
+        let mut style: Style = style.into();
 
         if let Some(color) = style.get_fg_color() {
             style = style.fg_color(self.adapt_color(color));
         }
         if let Some(color) = style.get_bg_color() {
             style = style.bg_color(self.adapt_color(color));
+        }
+        if let Some(color) = style.get_underline_color() {
+            style = style.underline_color(self.adapt_color(color));
         }
         style
     }
