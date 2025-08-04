@@ -8,6 +8,8 @@ mod detect;
 
 #[cfg(feature = "convert")]
 pub use color::*;
+#[cfg(feature = "convert")]
+pub use convert::*;
 pub use detect::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
