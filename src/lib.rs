@@ -6,6 +6,7 @@ mod color;
 mod convert;
 mod detect;
 
+pub use anstyle;
 #[cfg(feature = "convert")]
 pub use color::*;
 #[cfg(feature = "convert")]
