@@ -19,7 +19,7 @@ impl TermProfile {
                 if *self >= Self::Ansi256 {
                     Some(color)
                 } else {
-                    Some(ansi256_to_ansi(index))
+                    Some(ansi256_to_ansi(index).into())
                 }
             }
             Color::Rgb(rgb_color) => {
@@ -28,9 +28,9 @@ impl TermProfile {
                 } else {
                     let ansi256_index = rgb_to_ansi256(rgb_color);
                     if *self == Self::Ansi256 {
-                        Some(Color::Ansi256(ansi256_index.into()))
+                        Some(ansi256_index.into())
                     } else {
-                        Some(ansi256_to_ansi(ansi256_index))
+                        Some(ansi256_to_ansi(ansi256_index).into())
                     }
                 }
             }
@@ -59,8 +59,8 @@ impl TermProfile {
     }
 }
 
-fn ansi256_to_ansi(ansi256_index: u8) -> Color {
-    let ansi = match ANSI_256_TO_16[&ansi256_index] {
+pub fn ansi256_to_ansi(ansi256_index: u8) -> AnsiColor {
+    match ANSI_256_TO_16[&ansi256_index] {
         0 => AnsiColor::Black,
         1 => AnsiColor::Red,
         2 => AnsiColor::Green,
@@ -78,8 +78,7 @@ fn ansi256_to_ansi(ansi256_index: u8) -> Color {
         14 => AnsiColor::BrightCyan,
         15 => AnsiColor::BrightWhite,
         _ => unreachable!(),
-    };
-    Color::Ansi(ansi)
+    }
 }
 
 fn get_color_index(val: u8, breakpoints: &[u8]) -> usize {
@@ -124,7 +123,7 @@ fn blue_color_index(val: u8) -> usize {
 
 const COLOR_INTERVALS: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
 
-fn rgb_to_ansi256(color: RgbColor) -> u8 {
+pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
     let color = Srgb::new(color.r(), color.g(), color.b());
 
     let qr = red_color_index(color.red);
