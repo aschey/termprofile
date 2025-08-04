@@ -23,7 +23,7 @@ terminfo = ["dep:terminfo"]
 anstyle-crossterm = "4.0.1"
 crossterm = "0.29.0"
 rand = "0.9.1"
-rstest = "0.25.0"
+rstest = "0.26.1"
 
 [[example]]
 name = "convert"

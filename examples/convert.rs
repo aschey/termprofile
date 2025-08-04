@@ -5,7 +5,17 @@ use anstyle_crossterm::to_crossterm;
 use termprofile::TermProfile;
 
 fn main() {
-    let color = Color::Rgb(RgbColor(rand_rgb(), rand_rgb(), rand_rgb()));
+    let args: Vec<String> = std::env::args().collect();
+    let color: Color = if args.len() == 4 {
+        let rgb = (
+            args[1].parse::<u8>().unwrap(),
+            args[2].parse::<u8>().unwrap(),
+            args[3].parse::<u8>().unwrap(),
+        );
+        RgbColor(rgb.0, rgb.1, rgb.2).into()
+    } else {
+        RgbColor(rand_rgb(), rand_rgb(), rand_rgb()).into()
+    };
     let profile = TermProfile::detect(&stdout());
     print!("Detected profile: ");
     print_color(profile, color);

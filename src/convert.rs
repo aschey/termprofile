@@ -1,6 +1,5 @@
 use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
-use palette::color_difference::ImprovedCiede2000;
-use palette::{FromColor, Lab, Srgb};
+use palette::Srgb;
 
 use crate::TermProfile;
 use crate::ansi_256_to_16::ANSI_256_TO_16;
@@ -16,7 +15,13 @@ impl TermProfile {
         }
         match color {
             Color::Ansi(_) => Some(color),
-            Color::Ansi256(Ansi256Color(index)) => Some(ansi256_to_ansi(index)),
+            Color::Ansi256(Ansi256Color(index)) => {
+                if *self >= Self::Ansi256 {
+                    Some(color)
+                } else {
+                    Some(ansi256_to_ansi(index))
+                }
+            }
             Color::Rgb(rgb_color) => {
                 if *self == Self::TrueColor {
                     Some(color)
@@ -77,33 +82,62 @@ fn ansi256_to_ansi(ansi256_index: u8) -> Color {
     Color::Ansi(ansi)
 }
 
-fn value_to_color_index(value: u8) -> usize {
-    if value < 48 {
-        0
-    } else if value < 115 {
-        1
-    } else {
-        ((value - 35) / 40) as usize
-    }
+fn get_color_index(val: u8, breakpoints: &[u8]) -> usize {
+    breakpoints.iter().position(|p| val < *p).unwrap_or(5)
 }
+
+// fn red_color_index(val: u8) -> usize {
+//     get_color_index(val, &[38, 115, 155, 196, 235])
+// }
+
+// fn green_color_index(val: u8) -> usize {
+//     get_color_index(val, &[36, 116, 154, 195, 235])
+// }
+
+// fn blue_color_index(val: u8) -> usize {
+//     get_color_index(val, &[35, 115, 155, 195, 235])
+// }
+
+fn red_color_index(val: u8) -> usize {
+    get_color_index(val, &[49, 116, 156, 196, 236])
+}
+
+fn green_color_index(val: u8) -> usize {
+    get_color_index(val, &[48, 116, 156, 196, 236])
+}
+
+fn blue_color_index(val: u8) -> usize {
+    get_color_index(val, &[48, 116, 156, 196, 236])
+}
+
+// fn red_color_index(val: u8) -> usize {
+//     get_color_index(val, &[43, 116, 156, 196, 236])
+// }
+
+// fn green_color_index(val: u8) -> usize {
+//     get_color_index(val, &[42, 116, 155, 196, 236])
+// }
+
+// fn blue_color_index(val: u8) -> usize {
+//     get_color_index(val, &[41, 116, 156, 196, 236])
+// }
+
+const COLOR_INTERVALS: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
 
 fn rgb_to_ansi256(color: RgbColor) -> u8 {
     let color = Srgb::new(color.r(), color.g(), color.b());
-    let qr = value_to_color_index(color.red);
-    let qg = value_to_color_index(color.green);
-    let qb = value_to_color_index(color.blue);
 
-    let color_index = (36 * qr + 6 * qg + qb) as u8;
-    let index_to_color_value: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
-
-    let cr = index_to_color_value[qr];
-    let cg = index_to_color_value[qg];
-    let cb = index_to_color_value[qb];
+    let qr = red_color_index(color.red);
+    let qg = green_color_index(color.green);
+    let qb = blue_color_index(color.blue);
+    let cr = COLOR_INTERVALS[qr];
+    let cg = COLOR_INTERVALS[qg];
+    let cb = COLOR_INTERVALS[qb];
+    let color_index = (36 * qr + 6 * qg + qb + 16) as u8;
 
     if cr == color.red && cg == color.green && cb == color.blue {
-        return 16 + color_index;
+        return color_index;
     }
-
     let average = ((color.red as u32 + color.green as u32 + color.blue as u32) / 3) as u8;
     let gray_index = if average > 238 {
         23
@@ -115,14 +149,22 @@ fn rgb_to_ansi256(color: RgbColor) -> u8 {
     let color2 = Srgb::new(cr, cg, cb);
     let gray2 = Srgb::new(gray_value, gray_value, gray_value);
 
-    let lab_color: Lab = Lab::from_color(color.into_linear());
-    let color_distance = lab_color.improved_difference(Lab::from_color(color2.into_linear()));
-    let gray_distance = lab_color.improved_difference(Lab::from_color(gray2.into_linear()));
+    let color_distance = distance_squared(color, color2); // lab_color.distance_squared(color2);
+    let gray_distance = distance_squared(color, gray2);
     if color_distance <= gray_distance {
-        16 + color_index
+        color_index
     } else {
         232 + gray_index
     }
+}
+
+// after trying a bunch of methods, this seems to get the best results on average - https://stackoverflow.com/a/9085524
+fn distance_squared(rgb1: Srgb<u8>, rgb2: Srgb<u8>) -> u32 {
+    let r_mean = (rgb1.red as i32 + rgb2.red as i32) / 2;
+    let r = (rgb1.red as i32) - (rgb2.red as i32);
+    let g = (rgb1.green as i32) - (rgb2.green as i32);
+    let b = (rgb1.blue as i32) - (rgb2.blue as i32);
+    ((((512 + r_mean) * r * r) >> 8) + 4 * g * g + (((767 - r_mean) * b * b) >> 8)) as u32
 }
 
 // const ANSI_HEX: [&str; 256] = [
