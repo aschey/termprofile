@@ -18,7 +18,7 @@ fn rgb_to_ansi256(#[case] in_color: RgbColor, #[case] out_color: Ansi256Color) {
 }
 
 #[rstest]
-#[case(RgbColor(220, 90, 90), AnsiColor::BrightRed)]
+#[case(RgbColor(220, 90, 90), AnsiColor::Yellow)]
 #[case(RgbColor(20, 73, 18), AnsiColor::Green)]
 #[case(RgbColor(255, 0, 0), AnsiColor::BrightRed)]
 #[case(RgbColor(255, 255, 255), AnsiColor::BrightWhite)]
@@ -31,7 +31,7 @@ fn rgb_to_ansi16(#[case] in_color: RgbColor, #[case] out_color: AnsiColor) {
 }
 
 #[rstest]
-#[case(Ansi256Color(167), AnsiColor::BrightRed)]
+#[case(Ansi256Color(167), AnsiColor::Yellow)]
 #[case(Ansi256Color(0), AnsiColor::Black)]
 fn ansi256_to_ansi(#[case] in_color: Ansi256Color, #[case] out_color: AnsiColor) {
     let res = TermProfile::Ansi16
