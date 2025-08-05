@@ -1,21 +1,41 @@
-use anstyle::{Ansi256Color, Color, Style};
-use anstyle_crossterm::to_crossterm;
-use crossterm::style::ContentStyle;
+use anstyle::{Ansi256Color, AnsiColor, Color, Style};
+use anstyle_owo_colors::{to_owo_colors, to_owo_style};
+use owo_colors::{DynColors, OwoColorize};
 use termprofile::TermProfile;
 
 fn main() {
     for i in 0..=255 {
         let color = Color::Ansi256(Ansi256Color(i));
-        print!("{} ", get_style(color).apply(format!("original: {i}")));
-
         let adapted = TermProfile::Ansi16.adapt_color(color).unwrap();
+
         let Color::Ansi(ansi) = adapted else {
             unreachable!()
         };
-        println!("{}", get_style(adapted).apply(format!("adapted: {ansi:?}")));
+
+        let (fg, bg) = if ansi == AnsiColor::Black {
+            (AnsiColor::Black.into(), AnsiColor::White.into())
+        } else {
+            (AnsiColor::White.into(), AnsiColor::Black.into())
+        };
+
+        let text_style = style(fg, bg);
+        let i_str = i.to_string();
+        let adapt_str = format!("{adapted:?}");
+
+        let s = format!(
+            "{}{}{}{}",
+            "original: ".style(text_style),
+            i_str.style(style(color, bg)),
+            " adapted: ".style(text_style),
+            adapt_str.style(to_owo_style(
+                Style::new().fg_color(Some(adapted)).bg_color(Some(bg))
+            ))
+        );
+
+        println!("{s}");
     }
 }
 
-fn get_style(color: Color) -> ContentStyle {
-    to_crossterm(Style::new().fg_color(Some(color)))
+fn style(fg: Color, bg: Color) -> owo_colors::Style {
+    to_owo_style(Style::new().fg_color(Some(fg)).bg_color(Some(bg)))
 }
