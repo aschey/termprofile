@@ -1,6 +1,6 @@
 use anstyle::{Ansi256Color, AnsiColor, Color, Style};
-use anstyle_owo_colors::{to_owo_colors, to_owo_style};
-use owo_colors::{DynColors, OwoColorize};
+use anstyle_owo_colors::to_owo_style;
+use owo_colors::OwoColorize;
 use termprofile::TermProfile;
 
 fn main() {

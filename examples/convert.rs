@@ -1,7 +1,8 @@
 use std::io::stdout;
 
 use anstyle::{Color, RgbColor, Style};
-use anstyle_crossterm::to_crossterm;
+use anstyle_owo_colors::to_owo_style;
+use owo_colors::OwoColorize;
 use termprofile::TermProfile;
 
 fn main() {
@@ -32,8 +33,8 @@ fn main() {
 fn print_color(profile: TermProfile, color: Color) {
     let color = profile.adapt_color(color);
     if let Some(color) = color {
-        let style = to_crossterm(Style::new().fg_color(Some(color)));
-        println!("{}", style.apply(color_to_str(&color)));
+        let style = to_owo_style(Style::new().fg_color(Some(color)));
+        println!("{}", color_to_str(&color).style(style));
     } else {
         println!("No color");
     }
