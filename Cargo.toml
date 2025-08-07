@@ -28,7 +28,3 @@ rstest = "0.26.1"
 [[example]]
 name = "convert"
 required-features = ["convert"]
-
-[[example]]
-name = "256_all"
-required-features = ["convert"]

@@ -1,4 +1,4 @@
-use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor};
+use anstyle::{Ansi256Color, AnsiColor, Color, Effects, RgbColor, Style};
 use rstest::rstest;
 
 use crate::TermProfile;
@@ -11,10 +11,22 @@ use crate::TermProfile;
 #[case(RgbColor(250, 250, 250), Ansi256Color(231))]
 #[case(RgbColor(0, 0, 0), Ansi256Color(16))]
 fn rgb_to_ansi256(#[case] in_color: RgbColor, #[case] out_color: Ansi256Color) {
-    let res = TermProfile::Ansi256
-        .adapt_color(Color::Rgb(in_color))
-        .unwrap();
+    let res = TermProfile::Ansi256.adapt_color(in_color).unwrap();
     assert_eq!(res, Color::Ansi256(out_color));
+
+    let res = TermProfile::Ansi256.adapt_style(
+        Style::new()
+            .fg_color(Some(in_color.into()))
+            .bg_color(Some(in_color.into()))
+            .effects(Effects::BOLD),
+    );
+    assert_eq!(
+        res,
+        Style::new()
+            .fg_color(Some(out_color.into()))
+            .bg_color(Some(out_color.into()))
+            .effects(Effects::BOLD),
+    );
 }
 
 #[rstest]
@@ -24,38 +36,73 @@ fn rgb_to_ansi256(#[case] in_color: RgbColor, #[case] out_color: Ansi256Color) {
 #[case(RgbColor(255, 255, 255), AnsiColor::BrightWhite)]
 #[case(RgbColor(0, 0, 0), AnsiColor::Black)]
 fn rgb_to_ansi16(#[case] in_color: RgbColor, #[case] out_color: AnsiColor) {
-    let res = TermProfile::Ansi16
-        .adapt_color(Color::Rgb(in_color))
-        .unwrap();
+    let res = TermProfile::Ansi16.adapt_color(in_color).unwrap();
     assert_eq!(res, Color::Ansi(out_color));
+
+    let res = TermProfile::Ansi16.adapt_style(
+        Style::new()
+            .fg_color(Some(in_color.into()))
+            .bg_color(Some(in_color.into()))
+            .effects(Effects::BOLD),
+    );
+    assert_eq!(
+        res,
+        Style::new()
+            .fg_color(Some(out_color.into()))
+            .bg_color(Some(out_color.into()))
+            .effects(Effects::BOLD),
+    );
 }
 
 #[rstest]
 #[case(Ansi256Color(167), AnsiColor::Yellow)]
 #[case(Ansi256Color(0), AnsiColor::Black)]
 fn ansi256_to_ansi(#[case] in_color: Ansi256Color, #[case] out_color: AnsiColor) {
-    let res = TermProfile::Ansi16
-        .adapt_color(Color::Ansi256(in_color))
-        .unwrap();
+    let res = TermProfile::Ansi16.adapt_color(in_color).unwrap();
     assert_eq!(res, Color::Ansi(out_color));
+
+    let res = TermProfile::Ansi16.adapt_style(
+        Style::new()
+            .fg_color(Some(in_color.into()))
+            .bg_color(Some(in_color.into()))
+            .effects(Effects::BOLD),
+    );
+    assert_eq!(
+        res,
+        Style::new()
+            .fg_color(Some(out_color.into()))
+            .bg_color(Some(out_color.into()))
+            .effects(Effects::BOLD),
+    );
 }
 
 #[test]
 fn ascii() {
-    let res = TermProfile::Ascii.adapt_color(Color::Rgb(RgbColor(0, 0, 0)));
+    let color = Color::Rgb(RgbColor(0, 0, 0));
+    let res = TermProfile::Ascii.adapt_color(color);
     assert!(res.is_none());
+
+    let res =
+        TermProfile::Ascii.adapt_style(Style::new().fg_color(Some(color)).effects(Effects::BOLD));
+    assert_eq!(res, Style::new().effects(Effects::BOLD));
 }
 
 #[test]
 fn no_tty() {
-    let res = TermProfile::NoTty.adapt_color(Color::Rgb(RgbColor(0, 0, 0)));
+    let color = Color::Rgb(RgbColor(0, 0, 0));
+    let res = TermProfile::NoTty.adapt_color(color);
     assert!(res.is_none());
+
+    let res =
+        TermProfile::NoTty.adapt_style(Style::new().fg_color(Some(color)).effects(Effects::BOLD));
+    assert_eq!(res, Style::new());
 }
 
-#[test]
-fn no_change() {
-    let res = TermProfile::TrueColor
-        .adapt_color(Color::Rgb(RgbColor(0, 0, 0)))
-        .unwrap();
-    assert_eq!(res, Color::Rgb(RgbColor(0, 0, 0)));
+#[rstest]
+#[case(TermProfile::TrueColor, Color::Rgb(RgbColor(0, 0, 0)))]
+#[case(TermProfile::Ansi256, Color::Ansi256(Ansi256Color(0)))]
+#[case(TermProfile::Ansi16, Color::Ansi(AnsiColor::Black))]
+fn no_change(#[case] profile: TermProfile, #[case] color: Color) {
+    let res = profile.adapt_color(color).unwrap();
+    assert_eq!(res, color);
 }

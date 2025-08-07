@@ -1,6 +1,6 @@
 use std::io::stdout;
 
-use anstyle::{Color, RgbColor, Style};
+use anstyle::{Ansi256Color, Color, RgbColor, Style};
 use anstyle_owo_colors::to_owo_style;
 use owo_colors::OwoColorize;
 use termprofile::TermProfile;
@@ -14,11 +14,25 @@ fn main() {
             args[3].parse::<u8>().unwrap(),
         );
         RgbColor(rgb.0, rgb.1, rgb.2).into()
+    } else if args.len() == 2 {
+        let parts: Vec<_> = args[1].split(",").collect();
+        if parts.len() == 3 {
+            let rgb = (
+                parts[0].parse::<u8>().unwrap(),
+                parts[1].parse::<u8>().unwrap(),
+                parts[2].parse::<u8>().unwrap(),
+            );
+            RgbColor(rgb.0, rgb.1, rgb.2).into()
+        } else {
+            let i: u8 = args[1].parse().unwrap();
+            Ansi256Color(i).into()
+        }
     } else {
         RgbColor(rand_rgb(), rand_rgb(), rand_rgb()).into()
     };
     let profile = TermProfile::detect(&stdout());
-    print!("Detected profile: ");
+    println!("Detected profile: {profile:?}");
+    print!("Adapted: ");
     print_color(profile, color);
     if profile > TermProfile::Ansi256 {
         print!("ANSI 256: ");
