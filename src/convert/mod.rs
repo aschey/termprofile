@@ -157,12 +157,11 @@ fn rgb_to_ansi256_inner(color: RgbColor) -> u8 {
 
     let color_distance = distance_squared(srgb, color2);
     let gray_distance = distance_squared(srgb, gray2);
-    let index = if color_distance <= gray_distance {
+    if color_distance <= gray_distance {
         color_index
     } else {
         232 + gray_index
-    };
-    index
+    }
 }
 
 pub fn ansi256_to_rgb(ansi: Ansi256Color) -> RgbColor {
