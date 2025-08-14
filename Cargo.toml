@@ -19,7 +19,7 @@ default = ["terminfo"]
 windows-version = ["dep:os_info"]
 convert = ["dep:anstyle", "dep:palette"]
 terminfo = ["dep:terminfo"]
-cache = ["dep:lru"]
+color-cache = ["dep:lru"]
 
 [dev-dependencies]
 anstyle-owo-colors = "2.0.4"

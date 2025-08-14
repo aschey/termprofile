@@ -105,24 +105,24 @@ fn blue_color_index(val: u8) -> usize {
 
 const COLOR_INTERVALS: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
 
-#[cfg(feature = "cache")]
+#[cfg(feature = "color-cache")]
 static COLOR_CACHE: std::sync::LazyLock<std::sync::Mutex<lru::LruCache<RgbColor, u8>>> =
     std::sync::LazyLock::new(|| lru::LruCache::new(256.try_into().unwrap()).into());
 
-#[cfg(feature = "cache")]
+#[cfg(feature = "color-cache")]
 static CACHE_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 
-#[cfg(feature = "cache")]
+#[cfg(feature = "color-cache")]
 pub fn set_color_cache_enabled(enabled: bool) {
     CACHE_ENABLED.store(enabled, std::sync::atomic::Ordering::SeqCst);
 }
 
-#[cfg(feature = "cache")]
+#[cfg(feature = "color-cache")]
 pub fn set_color_cache_size(size: std::num::NonZeroUsize) {
     COLOR_CACHE.lock().unwrap().resize(size);
 }
 
-#[cfg(feature = "cache")]
+#[cfg(feature = "color-cache")]
 pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
     if CACHE_ENABLED.load(std::sync::atomic::Ordering::Relaxed) {
         if let Some(cached) = COLOR_CACHE.lock().unwrap().get(&color) {
@@ -136,7 +136,7 @@ pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
     }
 }
 
-#[cfg(not(feature = "cache"))]
+#[cfg(not(feature = "color-cache"))]
 pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
     rgb_to_ansi256_inner(color)
 }
@@ -153,7 +153,6 @@ fn rgb_to_ansi256_inner(color: RgbColor) -> u8 {
     let color_index = (36 * qr + 6 * qg + qb + 16) as u8;
 
     if cr == srgb.red && cg == srgb.green && cb == srgb.blue {
-        COLOR_CACHE.lock().unwrap().put(color, color_index);
         return color_index;
     }
     let average = ((srgb.red as u32 + srgb.green as u32 + srgb.blue as u32) / 3) as u8;
