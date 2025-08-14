@@ -2,10 +2,6 @@ mod ansi_256_to_16;
 mod ansi_256_to_rgb;
 mod color;
 
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{LazyLock, RwLock};
-
 use ansi_256_to_16::ANSI_256_TO_16;
 use ansi_256_to_rgb::ANSI_256_TO_RGB;
 use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
@@ -109,24 +105,40 @@ fn blue_color_index(val: u8) -> usize {
 
 const COLOR_INTERVALS: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
 
-static COLOR_CACHE: LazyLock<RwLock<HashMap<RgbColor, u8>>> = LazyLock::new(Default::default);
+#[cfg(feature = "cache")]
+static COLOR_CACHE: std::sync::LazyLock<std::sync::Mutex<lru::LruCache<RgbColor, u8>>> =
+    std::sync::LazyLock::new(|| lru::LruCache::new(256.try_into().unwrap()).into());
 
-static CACHE_ENABLED: AtomicBool = AtomicBool::new(true);
+#[cfg(feature = "cache")]
+static CACHE_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 
+#[cfg(feature = "cache")]
 pub fn set_color_cache_enabled(enabled: bool) {
-    CACHE_ENABLED.store(enabled, Ordering::SeqCst);
+    CACHE_ENABLED.store(enabled, std::sync::atomic::Ordering::SeqCst);
 }
 
+#[cfg(feature = "cache")]
+pub fn set_color_cache_size(size: std::num::NonZeroUsize) {
+    COLOR_CACHE.lock().unwrap().resize(size);
+}
+
+#[cfg(feature = "cache")]
 pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
-    let cache_enabled = CACHE_ENABLED.load(Ordering::Relaxed);
-    if cache_enabled && let Some(cached) = COLOR_CACHE.read().unwrap().get(&color) {
-        return *cached;
+    if CACHE_ENABLED.load(std::sync::atomic::Ordering::Relaxed) {
+        if let Some(cached) = COLOR_CACHE.lock().unwrap().get(&color) {
+            return *cached;
+        }
+        let converted = rgb_to_ansi256_inner(color);
+        COLOR_CACHE.lock().unwrap().put(color, converted);
+        converted
+    } else {
+        rgb_to_ansi256_inner(color)
     }
-    let converted = rgb_to_ansi256_inner(color);
-    if cache_enabled {
-        COLOR_CACHE.write().unwrap().insert(color, converted);
-    }
-    converted
+}
+
+#[cfg(not(feature = "cache"))]
+pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
+    rgb_to_ansi256_inner(color)
 }
 
 fn rgb_to_ansi256_inner(color: RgbColor) -> u8 {
@@ -141,7 +153,7 @@ fn rgb_to_ansi256_inner(color: RgbColor) -> u8 {
     let color_index = (36 * qr + 6 * qg + qb + 16) as u8;
 
     if cr == srgb.red && cg == srgb.green && cb == srgb.blue {
-        COLOR_CACHE.write().unwrap().insert(color, color_index);
+        COLOR_CACHE.lock().unwrap().put(color, color_index);
         return color_index;
     }
     let average = ((srgb.red as u32 + srgb.green as u32 + srgb.blue as u32) / 3) as u8;
