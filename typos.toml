@@ -1,2 +1,5 @@
 [default]
 extend-ignore-re = ["iterm"]
+
+[default.extend-words]
+ratatui = "ratatui"

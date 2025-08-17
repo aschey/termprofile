@@ -1,6 +1,6 @@
-use ratatui::style::Color;
+use ratatui::style::{Color, Style};
 
-use super::AdaptableColor;
+use super::{AdaptableColor, AdaptableStyle};
 
 impl AdaptableColor for Color {
     fn as_rgb(&self) -> Option<anstyle::RgbColor> {
@@ -65,6 +65,53 @@ impl AdaptableColor for Color {
             anstyle::AnsiColor::BrightMagenta => Color::LightMagenta,
             anstyle::AnsiColor::BrightCyan => Color::LightCyan,
             anstyle::AnsiColor::BrightWhite => Color::White,
+        }
+    }
+}
+
+impl AdaptableStyle for Style {
+    type Color = Color;
+
+    fn empty() -> Self {
+        Style::default()
+    }
+
+    fn get_fg_color(&self) -> Option<Self::Color> {
+        self.fg
+    }
+
+    fn fg_color(mut self, color: Option<Self::Color>) -> Self {
+        if let Some(color) = color {
+            self.fg(color)
+        } else {
+            self.fg = None;
+            self
+        }
+    }
+
+    fn get_bg_color(&self) -> Option<Self::Color> {
+        self.bg
+    }
+
+    fn bg_color(mut self, color: Option<Self::Color>) -> Self {
+        if let Some(color) = color {
+            self.bg(color)
+        } else {
+            self.bg = None;
+            self
+        }
+    }
+
+    fn get_underline_color(&self) -> Option<Self::Color> {
+        self.underline_color
+    }
+
+    fn underline_color(mut self, color: Option<Self::Color>) -> Self {
+        if let Some(color) = color {
+            self.underline_color(color)
+        } else {
+            self.underline_color = None;
+            self
         }
     }
 }
