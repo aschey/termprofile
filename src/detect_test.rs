@@ -345,6 +345,23 @@ fn windows_version_new() {
     assert_eq!(TermProfile::TrueColor, support);
 }
 
+#[test]
+fn dumb_term() {
+    let mut vars = TermVars::default();
+    vars.meta.term = TermVar::new("dumb");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::NoTty, support);
+}
+
+#[test]
+fn dumb_term_force_color() {
+    let mut vars = TermVars::default();
+    vars.meta.term = TermVar::new("dumb");
+    vars.overrides.clicolor_force = truthy_var();
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::Ansi16, support);
+}
+
 fn truthy_var() -> TermVar {
     TermVar::new("1")
 }

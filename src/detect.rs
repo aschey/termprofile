@@ -282,7 +282,9 @@ impl Detector {
     where
         T: IsTerminal,
     {
-        if !self.vars.overrides.tty_force.is_truthy() && !output.is_terminal() {
+        if (!self.vars.overrides.tty_force.is_truthy() && !output.is_terminal())
+            || self.vars.meta.is_dumb()
+        {
             TermProfile::NoTty
         } else {
             TermProfile::Ascii
@@ -319,7 +321,7 @@ impl Detector {
             _ => {}
         };
 
-        if self.vars.overrides.clicolor.is_truthy() && !self.vars.meta.is_dumb() {
+        if self.vars.overrides.clicolor.is_truthy() {
             profile = profile.max(Some(TermProfile::Ansi16));
         }
 
@@ -375,7 +377,7 @@ impl Detector {
 
         let mut profile = TermProfile::Ascii;
 
-        if term.is_empty() || term == "dumb" {
+        if term.is_empty() {
             if let Some(win_profile) = self.detect_windows() {
                 profile = win_profile;
             }
