@@ -1,63 +1,58 @@
+use anstyle::{Ansi256Color, AnsiColor, Color};
+
 use crate::TermProfile;
 
-pub struct ProfileColor<T> {
-    default: T,
-    ansi_256: Option<T>,
-    ansi_16: Option<T>,
+pub struct ProfileColor {
+    default: Color,
+    ansi_256: Option<Ansi256Color>,
+    ansi_16: Option<AnsiColor>,
+    profile: TermProfile,
 }
 
-impl<T> ProfileColor<T> {
-    pub fn new(default_color: T) -> Self {
+impl ProfileColor {
+    pub fn new<T>(default_color: T, profile: TermProfile) -> Self
+    where
+        T: Into<Color>,
+    {
         Self {
-            default: default_color,
+            default: default_color.into(),
             ansi_256: None,
             ansi_16: None,
+            profile,
         }
+    }
+
+    pub fn ansi_256<T>(mut self, color: T) -> Self
+    where
+        T: Into<Ansi256Color>,
+    {
+        self.ansi_256 = Some(color.into());
+        self
+    }
+
+    pub fn ansi_16<T>(mut self, color: T) -> Self
+    where
+        T: Into<AnsiColor>,
+    {
+        self.ansi_16 = Some(color.into());
+        self
     }
 }
 
-impl<T> ProfileColor<T>
-where
-    T: Clone + Into<anstyle::Color>,
-{
-    pub fn adapt(&self, profile: &TermProfile) -> Option<anstyle::Color> {
-        if *profile == TermProfile::Ansi256
-            && let Some(ansi_256) = &self.ansi_256
+impl ProfileColor {
+    pub fn adapt(&self) -> Option<Color> {
+        let mut color = self.default;
+        if self.profile <= TermProfile::Ansi256
+            && let Some(ansi_256) = self.ansi_256
         {
-            return Some(ansi_256.clone().into());
+            color = ansi_256.into();
         }
 
-        if *profile == TermProfile::Ansi16
-            && let Some(ansi_16) = &self.ansi_16
+        if self.profile <= TermProfile::Ansi16
+            && let Some(ansi_16) = self.ansi_16
         {
-            return Some(ansi_16.clone().into());
+            color = ansi_16.into();
         }
-
-        profile.adapt_color(self.default.clone())
-    }
-}
-
-impl<T> ProfileColor<T>
-where
-    T: Clone + Into<Option<anstyle::Color>>,
-{
-    pub fn try_adapt(&self, profile: &TermProfile) -> Option<anstyle::Color> {
-        if *profile == TermProfile::Ansi256
-            && let Some(ansi_256) = &self.ansi_256
-        {
-            return ansi_256.clone().into();
-        }
-
-        if *profile == TermProfile::Ansi16
-            && let Some(ansi_16) = &self.ansi_16
-        {
-            return ansi_16.clone().into();
-        }
-
-        if let Some(default) = self.default.clone().into() {
-            profile.adapt_color(default)
-        } else {
-            None
-        }
+        self.profile.adapt_color(color)
     }
 }
