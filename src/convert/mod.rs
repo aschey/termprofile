@@ -1,57 +1,58 @@
+mod adapt;
 mod ansi_256_to_16;
 mod ansi_256_to_rgb;
 mod color;
+#[cfg(feature = "ratatui")]
+mod ratatui;
 
+pub use adapt::*;
 use ansi_256_to_16::ANSI_256_TO_16;
 use ansi_256_to_rgb::ANSI_256_TO_RGB;
-use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
+use anstyle::{Ansi256Color, AnsiColor, RgbColor};
 pub use color::*;
 use palette::Srgb;
 
 use crate::TermProfile;
 
 impl TermProfile {
-    pub fn adapt_color<C>(&self, color: C) -> Option<Color>
+    pub fn adapt_color<C>(&self, color: C) -> Option<C>
     where
-        C: Into<Color>,
+        C: AdaptableColor,
     {
-        let color: Color = color.into();
         if *self < Self::Ansi16 {
             return None;
         }
-        match color {
-            Color::Ansi(_) => Some(color),
-            Color::Ansi256(Ansi256Color(index)) => {
-                if *self >= Self::Ansi256 {
-                    Some(color)
+        if color.as_ansi_16().is_some() {
+            Some(color)
+        } else if let Some(index) = color.as_ansi_256() {
+            if *self >= Self::Ansi256 {
+                Some(color)
+            } else {
+                Some(C::from_ansi_16(ansi256_to_ansi(index.0)))
+            }
+        } else if let Some(rgb_color) = color.as_rgb() {
+            if *self == Self::TrueColor {
+                Some(color)
+            } else {
+                let ansi256_index = rgb_to_ansi256(rgb_color);
+                if *self == Self::Ansi256 {
+                    Some(C::from_ansi_256(ansi256_index.into()))
                 } else {
-                    Some(ansi256_to_ansi(index).into())
+                    Some(C::from_ansi_16(ansi256_to_ansi(ansi256_index)))
                 }
             }
-            Color::Rgb(rgb_color) => {
-                if *self == Self::TrueColor {
-                    Some(color)
-                } else {
-                    let ansi256_index = rgb_to_ansi256(rgb_color);
-                    if *self == Self::Ansi256 {
-                        Some(ansi256_index.into())
-                    } else {
-                        Some(ansi256_to_ansi(ansi256_index).into())
-                    }
-                }
-            }
+        } else {
+            Some(color)
         }
     }
 
-    pub fn adapt_style<S>(&self, style: S) -> Style
+    pub fn adapt_style<S>(&self, mut style: S) -> S
     where
-        S: Into<Style>,
+        S: AdaptableStyle,
     {
         if *self == Self::NoTty {
-            return Style::new();
+            return S::empty();
         }
-        let mut style: Style = style.into();
-
         if let Some(color) = style.get_fg_color() {
             style = style.fg_color(self.adapt_color(color));
         }

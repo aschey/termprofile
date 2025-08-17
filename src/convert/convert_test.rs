@@ -12,7 +12,7 @@ use crate::TermProfile;
 #[case(RgbColor(250, 250, 250), Ansi256Color(231))]
 #[case(RgbColor(0, 0, 0), Ansi256Color(16))]
 fn rgb_to_ansi256(#[case] in_color: RgbColor, #[case] out_color: Ansi256Color) {
-    let res = TermProfile::Ansi256.adapt_color(in_color).unwrap();
+    let res: Color = TermProfile::Ansi256.adapt_color(in_color.into()).unwrap();
     assert_eq!(res, Color::Ansi256(out_color));
 
     let res = TermProfile::Ansi256.adapt_style(
@@ -37,7 +37,7 @@ fn rgb_to_ansi256(#[case] in_color: RgbColor, #[case] out_color: Ansi256Color) {
 #[case(RgbColor(255, 255, 255), AnsiColor::BrightWhite)]
 #[case(RgbColor(0, 0, 0), AnsiColor::Black)]
 fn rgb_to_ansi16(#[case] in_color: RgbColor, #[case] out_color: AnsiColor) {
-    let res = TermProfile::Ansi16.adapt_color(in_color).unwrap();
+    let res: Color = TermProfile::Ansi16.adapt_color(in_color.into()).unwrap();
     assert_eq!(res, Color::Ansi(out_color));
 
     let res = TermProfile::Ansi16.adapt_style(
@@ -59,7 +59,7 @@ fn rgb_to_ansi16(#[case] in_color: RgbColor, #[case] out_color: AnsiColor) {
 #[case(Ansi256Color(167), AnsiColor::Yellow)]
 #[case(Ansi256Color(0), AnsiColor::Black)]
 fn ansi256_to_ansi(#[case] in_color: Ansi256Color, #[case] out_color: AnsiColor) {
-    let res = TermProfile::Ansi16.adapt_color(in_color).unwrap();
+    let res: Color = TermProfile::Ansi16.adapt_color(in_color.into()).unwrap();
     assert_eq!(res, Color::Ansi(out_color));
 
     let res = TermProfile::Ansi16.adapt_style(
@@ -75,6 +75,14 @@ fn ansi256_to_ansi(#[case] in_color: Ansi256Color, #[case] out_color: AnsiColor)
             .bg_color(Some(out_color.into()))
             .effects(Effects::BOLD),
     );
+}
+
+#[test]
+fn ratatui_reset() {
+    let res = TermProfile::Ansi16
+        .adapt_color(ratatui::style::Color::Reset)
+        .unwrap();
+    assert_eq!(res, ratatui::style::Color::Reset);
 }
 
 #[test]
