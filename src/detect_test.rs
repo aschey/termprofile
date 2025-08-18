@@ -7,7 +7,7 @@ use crate::TermProfile;
 fn default_terminal() {
     let vars = TermVars::default();
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
-    assert_eq!(TermProfile::Ascii, support);
+    assert_eq!(TermProfile::NoColor, support);
 }
 
 #[test]
@@ -54,7 +54,7 @@ fn no_color() {
     let mut vars = TermVars::default();
     vars.overrides.no_color = truthy_var();
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
-    assert_eq!(TermProfile::Ascii, support);
+    assert_eq!(TermProfile::NoColor, support);
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn no_color_precedence() {
     vars.overrides.no_color = truthy_var();
     vars.overrides.force_color = truthy_var();
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
-    assert_eq!(TermProfile::Ascii, support);
+    assert_eq!(TermProfile::NoColor, support);
 }
 
 #[test]
@@ -92,7 +92,16 @@ fn clicolor_force() {
 }
 
 #[test]
-fn force_color_0() {
+fn force_color_disabled() {
+    let mut vars = TermVars::default();
+    vars.overrides.force_color = TermVar::new("no_color");
+    vars.meta.colorterm = TermVar::new("truecolor");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::NoColor, support);
+}
+
+#[test]
+fn force_color_disabled_no_tty() {
     let mut vars = TermVars::default();
     vars.overrides.force_color = TermVar::new("0");
     let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
@@ -234,12 +243,29 @@ fn apple_terminal() {
 }
 
 #[test]
+fn mintty() {
+    let mut vars = TermVars::default();
+    vars.meta.term_program = TermVar::new("mintty");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::TrueColor, support);
+}
+
+#[test]
 fn iterm() {
     let mut vars = TermVars::default();
     vars.meta.term_program = TermVar::new("iterm.app");
     vars.meta.term_program_version = TermVar::new("3.0");
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(TermProfile::TrueColor, support);
+}
+
+#[test]
+fn iterm_old() {
+    let mut vars = TermVars::default();
+    vars.meta.term_program = TermVar::new("iterm.app");
+    vars.meta.term_program_version = TermVar::new("2.0");
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::Ansi256, support);
 }
 
 #[test]
@@ -270,7 +296,7 @@ fn terminfo_max_colors() {
 fn special_var_truecolor() {
     let mut vars = TermVars::default();
     vars.special.google_cloud_shell = truthy_var();
-    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(TermProfile::TrueColor, support);
 }
 
@@ -278,7 +304,15 @@ fn special_var_truecolor() {
 fn special_var_ansi() {
     let mut vars = TermVars::default();
     vars.special.travis = truthy_var();
-    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
+    assert_eq!(TermProfile::Ansi16, support);
+}
+
+#[test]
+fn special_var_ci() {
+    let mut vars = TermVars::default();
+    vars.special.ci = truthy_var();
+    let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(TermProfile::Ansi16, support);
 }
 
@@ -298,7 +332,7 @@ fn windows_version_old() {
     vars.windows.build_number = 10585;
     vars.windows.os_version = 10;
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
-    assert_eq!(TermProfile::Ascii, support);
+    assert_eq!(TermProfile::NoColor, support);
 }
 
 #[test]

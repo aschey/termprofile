@@ -80,6 +80,7 @@ pub struct SpecialVars {
     pub agent_name: TermVar,
     pub ci_name: TermVar,
     pub con_emu_ansi: TermVar,
+    pub ci: TermVar,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -174,6 +175,7 @@ impl SpecialVars {
             teamcity_version: TermVar::from_env("TEAMCITY_VERSION"),
             tf_build: TermVar::from_env("TF_BUILD"),
             con_emu_ansi: TermVar::from_env("ConEmuANSI"),
+            ci: TermVar::from_env("CI"),
         }
     }
 }
@@ -263,13 +265,14 @@ impl TermProfile {
         if let Some(env) = detector.detect_force_color() {
             return env;
         }
-
-        // Only NO_COLOR/FORCE_COLOR stuff can override no_tty
+        if let Some(env) = detector.detect_special_cases() {
+            return env;
+        }
         if profile == TermProfile::NoTty {
             return profile;
         }
 
-        detector.detect_default_cases()
+        detector.detect_term_vars()
     }
 }
 
@@ -287,12 +290,12 @@ impl Detector {
         {
             TermProfile::NoTty
         } else {
-            TermProfile::Ascii
+            TermProfile::NoColor
         }
     }
     fn detect_no_color(&self) -> Option<TermProfile> {
         if self.vars.overrides.no_color.is_truthy() {
-            Some(TermProfile::Ascii)
+            Some(TermProfile::NoColor)
         } else {
             None
         }
@@ -314,7 +317,8 @@ impl Detector {
             profile = profile.max(Some(TermProfile::Ansi16));
         }
 
-        match force_color.value().to_lowercase().as_str() {
+        match force_color.value().as_str() {
+            "no_color" => return Some(TermProfile::NoColor),
             "ansi" | "ansi16" => return Some(TermProfile::Ansi16),
             "ansi256" => return Some(TermProfile::Ansi256),
             "truecolor" => return Some(TermProfile::TrueColor),
@@ -325,29 +329,24 @@ impl Detector {
             profile = profile.max(Some(TermProfile::Ansi16));
         }
 
-        profile.map(|p| p.max(self.detect_default_cases()))
-    }
-
-    fn detect_default_cases(&self) -> TermProfile {
-        self.detect_special_cases()
-            .unwrap_or(TermProfile::Ascii)
-            .max(self.detect_term_vars())
+        profile.map(|p| p.max(self.detect_term_vars()))
     }
 
     fn detect_special_cases(&self) -> Option<TermProfile> {
+        let special = &self.vars.special;
         let truecolor_platforms: [&TermVar; 4] = [
-            &self.vars.special.google_cloud_shell,
-            &self.vars.special.github_actions,
-            &self.vars.special.gitea_actions,
-            &self.vars.special.circleci,
+            &special.google_cloud_shell,
+            &special.github_actions,
+            &special.gitea_actions,
+            &special.circleci,
         ];
         let ansi_platforms: [&TermVar; 6] = [
-            &self.vars.special.travis,
-            &self.vars.special.appveyor,
-            &self.vars.special.gitlab_ci,
-            &self.vars.special.buildkite,
-            &self.vars.special.drone,
-            &self.vars.special.teamcity_version,
+            &special.travis,
+            &special.appveyor,
+            &special.gitlab_ci,
+            &special.buildkite,
+            &special.drone,
+            &special.teamcity_version,
         ];
 
         if truecolor_platforms.iter().any(|p| !p.is_empty()) {
@@ -359,11 +358,15 @@ impl Detector {
         }
 
         // Azure pipelines
-        if !self.vars.special.tf_build.is_empty() && !self.vars.special.agent_name.is_empty() {
+        if !special.tf_build.is_empty() && !self.vars.special.agent_name.is_empty() {
             return Some(TermProfile::Ansi16);
         }
 
-        if self.vars.special.ci_name.value() == "codeship" {
+        if special.ci_name.value() == "codeship" {
+            return Some(TermProfile::Ansi16);
+        }
+
+        if special.ci.is_truthy() {
             return Some(TermProfile::Ansi16);
         }
 
@@ -375,7 +378,7 @@ impl Detector {
         let mut term = self.vars.meta.term.value();
         let term_program = self.vars.meta.term_program.value();
 
-        let mut profile = TermProfile::Ascii;
+        let mut profile = TermProfile::NoColor;
 
         if term.is_empty() {
             if let Some(win_profile) = self.detect_windows() {
@@ -432,7 +435,7 @@ impl Detector {
         }
 
         // tmux changes the TERM variable which could make this report 256 color or truecolor
-        // support for a terminal that supports less than 256 colors
+        // incorrectly
         if let Some(tmux_profile) = self.detect_tmux() {
             profile = profile.max(tmux_profile);
         }
@@ -505,7 +508,7 @@ impl Detector {
 
         if self.vars.windows.build_number < 10586 || self.vars.windows.os_version < 10 {
             if self.vars.windows.ansicon.is_empty() {
-                return Some(TermProfile::Ascii);
+                return Some(TermProfile::NoColor);
             } else {
                 let ansicon_version = self.vars.windows.ansicon_ver.value().parse::<u32>();
                 if ansicon_version.map(|v| v >= 181).unwrap_or(false) {

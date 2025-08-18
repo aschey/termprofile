@@ -11,12 +11,15 @@ pub trait AdaptableColor {
 
 pub trait AdaptableStyle {
     type Color: AdaptableColor;
+
     fn empty() -> Self;
+
     fn get_fg_color(&self) -> Option<Self::Color>;
-    fn fg_color(self, color: Option<Self::Color>) -> Self;
     fn get_bg_color(&self) -> Option<Self::Color>;
-    fn bg_color(self, color: Option<Self::Color>) -> Self;
     fn get_underline_color(&self) -> Option<Self::Color>;
+
+    fn fg_color(self, color: Option<Self::Color>) -> Self;
+    fn bg_color(self, color: Option<Self::Color>) -> Self;
     fn underline_color(self, color: Option<Self::Color>) -> Self;
 }
 

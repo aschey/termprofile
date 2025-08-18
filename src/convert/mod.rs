@@ -160,7 +160,7 @@ fn rgb_to_ansi256_inner(color: RgbColor) -> u8 {
     let gray_index = if average > 238 {
         23
     } else {
-        (average - 3) / 10
+        (average.saturating_sub(3)) / 10
     };
     let gray_value = 8 + 10 * gray_index;
 

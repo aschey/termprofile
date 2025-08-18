@@ -88,11 +88,11 @@ fn ratatui_reset() {
 #[test]
 fn ascii() {
     let color = Color::Rgb(RgbColor(0, 0, 0));
-    let res = TermProfile::Ascii.adapt_color(color);
+    let res = TermProfile::NoColor.adapt_color(color);
     assert!(res.is_none());
 
     let res =
-        TermProfile::Ascii.adapt_style(Style::new().fg_color(Some(color)).effects(Effects::BOLD));
+        TermProfile::NoColor.adapt_style(Style::new().fg_color(Some(color)).effects(Effects::BOLD));
     assert_eq!(res, Style::new().effects(Effects::BOLD));
 }
 
