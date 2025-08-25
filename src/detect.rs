@@ -552,7 +552,7 @@ impl TermVar {
     fn is_truthy(&self) -> bool {
         self.0
             .as_deref()
-            .map(|v| v == "1" || v == "true" || v == "yes")
+            .map(|v| v == "1" || v == "true" || v == "yes" || v == "on")
             .unwrap_or(false)
     }
 
@@ -566,6 +566,15 @@ impl TermVar {
 
     fn value(&self) -> String {
         self.0.clone().unwrap_or_default()
+    }
+}
+
+impl<T> From<T> for TermVar
+where
+    T: Into<String>,
+{
+    fn from(value: T) -> Self {
+        Self::new(value)
     }
 }
 
