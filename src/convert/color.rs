@@ -1,18 +1,21 @@
-use anstyle::{Ansi256Color, AnsiColor, Color};
+use anstyle::{Ansi256Color, AnsiColor};
 
-use crate::TermProfile;
+use crate::{AdaptableColor, TermProfile};
 
-pub struct ProfileColor {
-    default: Color,
+pub struct ProfileColor<C> {
+    default: C,
     ansi_256: Option<Ansi256Color>,
     ansi_16: Option<AnsiColor>,
     profile: TermProfile,
 }
 
-impl ProfileColor {
+impl<C> ProfileColor<C>
+where
+    C: AdaptableColor + Clone,
+{
     pub fn new<T>(default_color: T, profile: TermProfile) -> Self
     where
-        T: Into<Color>,
+        T: Into<C>,
     {
         Self {
             default: default_color.into(),
@@ -24,34 +27,32 @@ impl ProfileColor {
 
     pub fn ansi_256<T>(mut self, color: T) -> Self
     where
-        T: Into<Ansi256Color>,
+        T: Into<C>,
     {
-        self.ansi_256 = Some(color.into());
+        self.ansi_256 = color.into().as_ansi_256();
         self
     }
 
     pub fn ansi_16<T>(mut self, color: T) -> Self
     where
-        T: Into<AnsiColor>,
+        T: Into<C>,
     {
-        self.ansi_16 = Some(color.into());
+        self.ansi_16 = color.into().as_ansi_16();
         self
     }
-}
 
-impl ProfileColor {
-    pub fn adapt(&self) -> Option<Color> {
-        let mut color = self.default;
+    pub fn adapt(&self) -> Option<C> {
+        let mut color = self.default.clone();
         if self.profile <= TermProfile::Ansi256
             && let Some(ansi_256) = self.ansi_256
         {
-            color = ansi_256.into();
+            color = C::from_ansi_256(ansi_256);
         }
 
         if self.profile <= TermProfile::Ansi16
             && let Some(ansi_16) = self.ansi_16
         {
-            color = ansi_16.into();
+            color = C::from_ansi_16(ansi_16);
         }
         self.profile.adapt_color(color)
     }

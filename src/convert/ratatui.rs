@@ -115,3 +115,7 @@ impl AdaptableStyle for Style {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "./ratatui_test.rs"]
+mod ratatui_test;

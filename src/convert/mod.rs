@@ -111,7 +111,7 @@ static COLOR_CACHE: std::sync::LazyLock<std::sync::Mutex<lru::LruCache<RgbColor,
     std::sync::LazyLock::new(|| lru::LruCache::new(256.try_into().unwrap()).into());
 
 #[cfg(feature = "color-cache")]
-static CACHE_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+static CACHE_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 #[cfg(feature = "color-cache")]
 pub fn set_color_cache_enabled(enabled: bool) {
