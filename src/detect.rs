@@ -78,6 +78,7 @@ pub struct SpecialVars {
     pub teamcity_version: TermVar,
     pub tf_build: TermVar,
     pub agent_name: TermVar,
+    pub cirrus_ci: TermVar,
     pub ci_name: TermVar,
     pub con_emu_ansi: TermVar,
     pub ci: TermVar,
@@ -174,6 +175,7 @@ impl SpecialVars {
             agent_name: TermVar::from_env("AGENT_NAME"),
             teamcity_version: TermVar::from_env("TEAMCITY_VERSION"),
             tf_build: TermVar::from_env("TF_BUILD"),
+            cirrus_ci: TermVar::from_env("CIRRUS_CI"),
             con_emu_ansi: TermVar::from_env("ConEmuANSI"),
             ci: TermVar::from_env("CI"),
         }
@@ -334,11 +336,12 @@ impl Detector {
 
     fn detect_special_cases(&self) -> Option<TermProfile> {
         let special = &self.vars.special;
-        let truecolor_platforms: [&TermVar; 4] = [
+        let truecolor_platforms: [&TermVar; 5] = [
             &special.google_cloud_shell,
             &special.github_actions,
             &special.gitea_actions,
             &special.circleci,
+            &special.cirrus_ci,
         ];
         let ansi_platforms: [&TermVar; 6] = [
             &special.travis,

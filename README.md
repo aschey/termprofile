@@ -158,15 +158,20 @@ detection behavior.
 
   In addition to true/false values,
   [chalk](https://github.com/chalk/chalk?tab=readme-ov-file#chalklevel) supports
-  using numerical values to specify a specific color level. Unfortunately, this
-  creates ambiguity with `FORCE_COLOR=1` which could be interpreted to mean
-  either "color level 1" or "true". Instead, we support semantic values to force
-  a specific color value.
+  using numerical values to set a specific color level. Unfortunately, this
+  creates [ambiguity](https://github.com/chalk/chalk/issues/624) with
+  `FORCE_COLOR=1` which could be interpreted to mean either "color level 1" or
+  "true". Instead, we support semantic values to force a specific color value.
 
   - `no_color` - disables all colors
   - `ansi` or `ansi16` - forces ANSI 16 color
   - `ansi256` - forces ANSI 256 colors
   - `truecolor` or `24bit` - true color
+
+  example: `CLICOLOR_FORCE="ansi256"`
+
+  This can be useful for testing how your program works with a specific color
+  support level.
 
 - [`NO_COLOR`](https://bixense.com/clicolors) - When set to a truthy value, this
   forces colors to be disabled.
@@ -175,8 +180,8 @@ detection behavior.
   this can be set to a truthy value to treat the terminal like a TTY even if the
   call to
   [`is_terminal`](https://doc.rust-lang.org/std/io/trait.IsTerminal.html)
-  returns false. May be useful in some exceptional cases or nonstandard
-  platforms.
+  returns false. May be useful in some nonstandard platforms or in some
+  scenarios like reading output from a subprocess.
 
 ### Windows
 
