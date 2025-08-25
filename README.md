@@ -23,10 +23,8 @@ Terminal environments can have several different levels of color support:
 use std::io::stdout;
 use termprofile::TermProfile;
 
-fn main() {
-    let profile = TermProfile::detect(&stdout());
-    println!("Detected profile: {profile:?}");
-}
+let profile = TermProfile::detect(&stdout());
+println!("Detected profile: {profile:?}");
 ```
 
 #### Overriding Variables
@@ -132,7 +130,7 @@ Unfortunately, there is no standard way to accurately detect color support in
 terminals. There is a way to
 [query specifically for true color support](https://github.com/termstandard/colors?tab=readme-ov-file#querying-the-terminal),
 but few terminals support this. Instead, we must rely on a number of environment
-variables that have organically emerged as a psuedo-standard over time.
+variables that have organically emerged as a pseudo-standard over time.
 
 ### Terminal Variables
 
