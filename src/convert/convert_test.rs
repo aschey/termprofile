@@ -12,7 +12,9 @@ use crate::TermProfile;
 #[case(RgbColor(250, 250, 250), Ansi256Color(231))]
 #[case(RgbColor(0, 0, 0), Ansi256Color(16))]
 fn rgb_to_ansi256(#[case] in_color: RgbColor, #[case] out_color: Ansi256Color) {
-    let res: Color = TermProfile::Ansi256.adapt_color(in_color.into()).unwrap();
+    let res = TermProfile::Ansi256
+        .adapt_color(Color::Rgb(in_color))
+        .unwrap();
     assert_eq!(res, Color::Ansi256(out_color));
 
     let res = TermProfile::Ansi256.adapt_style(
@@ -37,7 +39,9 @@ fn rgb_to_ansi256(#[case] in_color: RgbColor, #[case] out_color: Ansi256Color) {
 #[case(RgbColor(255, 255, 255), AnsiColor::BrightWhite)]
 #[case(RgbColor(0, 0, 0), AnsiColor::Black)]
 fn rgb_to_ansi16(#[case] in_color: RgbColor, #[case] out_color: AnsiColor) {
-    let res: Color = TermProfile::Ansi16.adapt_color(in_color.into()).unwrap();
+    let res = TermProfile::Ansi16
+        .adapt_color(Color::Rgb(in_color))
+        .unwrap();
     assert_eq!(res, Color::Ansi(out_color));
 
     let res = TermProfile::Ansi16.adapt_style(
@@ -59,7 +63,9 @@ fn rgb_to_ansi16(#[case] in_color: RgbColor, #[case] out_color: AnsiColor) {
 #[case(Ansi256Color(167), AnsiColor::Yellow)]
 #[case(Ansi256Color(0), AnsiColor::Black)]
 fn ansi256_to_ansi(#[case] in_color: Ansi256Color, #[case] out_color: AnsiColor) {
-    let res: Color = TermProfile::Ansi16.adapt_color(in_color.into()).unwrap();
+    let res = TermProfile::Ansi16
+        .adapt_color(Color::Ansi256(in_color))
+        .unwrap();
     assert_eq!(res, Color::Ansi(out_color));
 
     let res = TermProfile::Ansi16.adapt_style(
@@ -118,33 +124,31 @@ fn no_change(#[case] profile: TermProfile, #[case] color: Color) {
 
 #[test]
 fn profile_color_no_change() {
-    let color: ProfileColor<Color> = ProfileColor::new(RgbColor(0, 0, 0), TermProfile::TrueColor);
+    let color = ProfileColor::new(Color::Rgb(RgbColor(0, 0, 0)), TermProfile::TrueColor);
     assert_eq!(color.adapt(), Some(RgbColor(0, 0, 0).into()));
 }
 
 #[test]
 fn profile_color_adapt() {
-    let color: ProfileColor<Color> = ProfileColor::new(RgbColor(0, 0, 0), TermProfile::Ansi256);
+    let color = ProfileColor::new(Color::Rgb(RgbColor(0, 0, 0)), TermProfile::Ansi256);
     assert_eq!(color.adapt(), Some(Ansi256Color(16).into()));
 }
 
 #[test]
 fn profile_color_256_override() {
-    let color: ProfileColor<Color> =
-        ProfileColor::new(RgbColor(0, 0, 0), TermProfile::Ansi256).ansi_256(0);
+    let color = ProfileColor::new(Color::Rgb(RgbColor(0, 0, 0)), TermProfile::Ansi256).ansi_256(0);
     assert_eq!(color.adapt(), Some(Ansi256Color(0).into()));
 }
 
 #[test]
 fn profile_color_16_override() {
-    let color: ProfileColor<Color> =
-        ProfileColor::new(RgbColor(0, 0, 0), TermProfile::Ansi16).ansi_16(AnsiColor::BrightBlack);
+    let color = ProfileColor::new(Color::Rgb(RgbColor(0, 0, 0)), TermProfile::Ansi16)
+        .ansi_16(AnsiColor::BrightBlack);
     assert_eq!(color.adapt(), Some(AnsiColor::BrightBlack.into()));
 }
 
 #[test]
 fn profile_color_downsample_priority() {
-    let color: ProfileColor<Color> =
-        ProfileColor::new(RgbColor(0, 0, 0), TermProfile::Ansi16).ansi_256(8);
+    let color = ProfileColor::new(Color::Rgb(RgbColor(0, 0, 0)), TermProfile::Ansi16).ansi_256(8);
     assert_eq!(color.adapt(), Some(AnsiColor::BrightBlack.into()));
 }

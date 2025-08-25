@@ -13,12 +13,9 @@ impl<C> ProfileColor<C>
 where
     C: AdaptableColor + Clone,
 {
-    pub fn new<T>(default_color: T, profile: TermProfile) -> Self
-    where
-        T: Into<C>,
-    {
+    pub fn new(default_color: C, profile: TermProfile) -> Self {
         Self {
-            default: default_color.into(),
+            default: default_color,
             ansi_256: None,
             ansi_16: None,
             profile,

@@ -64,7 +64,7 @@ use anstyle::{Color, RgbColor, Ansi256Color, AnsiColor};
 
 let profile = TermProfile::Ansi256;
 
-let color: ProfileColor<Color> = ProfileColor::new(RgbColor(209, 234, 213), profile)
+let color = ProfileColor::new(Color::Rgb(RgbColor(209, 234, 213)), profile)
   .ansi_256(240)
   .ansi_16(AnsiColor::White);
 
