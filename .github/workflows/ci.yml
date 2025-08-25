@@ -37,7 +37,6 @@ jobs:
         run: cargo build --all-features --examples
       - name: Test
         run: |
-          cargo test
           cargo test --all-features
   release-build:
     strategy:

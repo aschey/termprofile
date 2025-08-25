@@ -32,3 +32,8 @@ rstest = "0.26.1"
 [[example]]
 name = "convert"
 required-features = ["convert"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
