@@ -3,7 +3,7 @@ use std::io::stdout;
 use anstyle::{Ansi256Color, Color, RgbColor, Style};
 use anstyle_owo_colors::to_owo_style;
 use owo_colors::OwoColorize;
-use termprofile::TermProfile;
+use termprofile::{DetectorSettings, TermProfile};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -30,7 +30,7 @@ fn main() {
     } else {
         RgbColor(rand_rgb(), rand_rgb(), rand_rgb()).into()
     };
-    let profile = TermProfile::detect(&stdout());
+    let profile = TermProfile::detect(&stdout(), DetectorSettings::default());
     println!("Detected profile: {profile:?}");
     print!("Adapted: ");
     print_color(profile, color);

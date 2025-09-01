@@ -21,9 +21,9 @@ Terminal environments can have several different levels of color support:
 
 ```rust
 use std::io::stdout;
-use termprofile::TermProfile;
+use termprofile::{TermProfile, DetectorSettings};
 
-let profile = TermProfile::detect(&stdout());
+let profile = TermProfile::detect(&stdout(), DetectorSettings::default());
 println!("Detected profile: {profile:?}");
 ```
 
@@ -33,9 +33,9 @@ Variables can be overridden before detecting the color profile.
 
 ```rust
 use std::io::stdout;
-use termprofile::{TermProfile, TermVars};
+use termprofile::{TermProfile, TermVars, DetectorSettings};
 
-let mut vars = TermVars::from_env();
+let mut vars = TermVars::from_env(DetectorSettings::default());
 vars.overrides.force_color = "1".into();
 let profile = TermProfile::detect_with_vars(&stdout(), vars);
 println!("Profile with override: {profile:?}");

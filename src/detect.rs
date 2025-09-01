@@ -100,8 +100,10 @@ pub struct TerminfoVars {
 
 impl TerminfoVars {
     #[cfg(feature = "terminfo")]
-    fn from_env() -> Self {
-        if let Ok(info) = terminfo::Database::from_env() {
+    fn from_env(settings: &DetectorSettings) -> Self {
+        if settings.enable_terminfo
+            && let Ok(info) = terminfo::Database::from_env()
+        {
             Self {
                 truecolor: info.get::<terminfo::capability::TrueColor>().map(|t| t.0),
                 max_colors: info.get::<terminfo::capability::MaxColors>().map(|c| c.0),
@@ -121,22 +123,26 @@ impl TerminfoVars {
 }
 
 impl TermVars {
-    pub fn from_env() -> Self {
+    pub fn from_env(settings: DetectorSettings) -> Self {
         Self {
-            meta: TermMetaVars::from_env(),
+            meta: TermMetaVars::from_env(&settings),
             overrides: OverrideVars::from_env(),
             special: SpecialVars::from_env(),
-            tmux: TmuxVars::from_env(),
-            terminfo: TerminfoVars::from_env(),
+            tmux: TmuxVars::from_env(&settings),
+            terminfo: TerminfoVars::from_env(&settings),
             windows: WindowsVars::from_env(),
         }
     }
 }
 
 impl TermMetaVars {
-    pub fn from_env() -> Self {
+    pub fn from_env(settings: &DetectorSettings) -> Self {
         #[cfg(feature = "osc-detect")]
-        let osc_response = osc_detect().unwrap_or(false);
+        let osc_response = if settings.enable_osc {
+            osc_detect().unwrap_or(false)
+        } else {
+            false
+        };
         #[cfg(not(feature = "osc-detect"))]
         let osc_response = false;
         Self {
@@ -239,29 +245,30 @@ impl SpecialVars {
 }
 
 impl TmuxVars {
-    pub fn from_env() -> Self {
-        Self::try_from_env().unwrap_or_default()
+    pub fn from_env(settings: &DetectorSettings) -> Self {
+        Self::try_from_env(settings).unwrap_or_default()
     }
 
-    pub fn try_from_env() -> Result<Self, io::Error> {
+    pub fn try_from_env(settings: &DetectorSettings) -> Result<Self, io::Error> {
         let tmux = TermVar::from_env("TMUX");
         let term = TermVar::from_env("TERM");
         // tmux var may be missing if using over ssh
-        let tmux_info = if !tmux.is_empty() || term.value().starts_with("tmux") {
-            let mut cmd = Command::new("tmux")
-                .arg("info")
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()?;
-            cmd.wait()?;
-            let mut out = String::new();
-            cmd.stdout
-                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "stdout missing"))?
-                .read_to_string(&mut out)?;
-            out
-        } else {
-            String::new()
-        };
+        let tmux_info =
+            if settings.enable_tmux_info && !tmux.is_empty() || term.value().starts_with("tmux") {
+                let mut cmd = Command::new("tmux")
+                    .arg("info")
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()?;
+                cmd.wait()?;
+                let mut out = String::new();
+                cmd.stdout
+                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "stdout missing"))?
+                    .read_to_string(&mut out)?;
+                out
+            } else {
+                String::new()
+            };
 
         Ok(Self { tmux_info })
     }
@@ -301,12 +308,50 @@ impl WindowsVars {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DetectorSettings {
+    enable_osc: bool,
+    enable_terminfo: bool,
+    enable_tmux_info: bool,
+}
+
+impl Default for DetectorSettings {
+    fn default() -> Self {
+        Self {
+            enable_osc: true,
+            enable_terminfo: true,
+            enable_tmux_info: true,
+        }
+    }
+}
+
+impl DetectorSettings {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn enable_osc(mut self, enable_osc: bool) -> Self {
+        self.enable_osc = enable_osc;
+        self
+    }
+
+    pub fn enable_terminfo(mut self, enable_terminfo: bool) -> Self {
+        self.enable_terminfo = enable_terminfo;
+        self
+    }
+
+    pub fn enable_tmux_info(mut self, enable_tmux_info: bool) -> Self {
+        self.enable_tmux_info = enable_tmux_info;
+        self
+    }
+}
+
 impl TermProfile {
-    pub fn detect<T>(output: &T) -> Self
+    pub fn detect<T>(output: &T, settings: DetectorSettings) -> Self
     where
         T: IsTerminal,
     {
-        Self::detect_with_vars(output, TermVars::from_env())
+        Self::detect_with_vars(output, TermVars::from_env(settings))
     }
 
     pub fn detect_with_vars<T>(output: &T, vars: TermVars) -> Self
