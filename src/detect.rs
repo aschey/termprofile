@@ -117,7 +117,7 @@ impl TerminfoVars {
     }
 
     #[cfg(not(feature = "terminfo"))]
-    fn from_env() -> Self {
+    fn from_env(_settings: &DetectorSettings) -> Self {
         Self::default()
     }
 }
@@ -136,7 +136,7 @@ impl TermVars {
 }
 
 impl TermMetaVars {
-    pub fn from_env(settings: &DetectorSettings) -> Self {
+    pub fn from_env(#[allow(unused)] settings: &DetectorSettings) -> Self {
         #[cfg(feature = "osc-detect")]
         let osc_response = if settings.enable_osc {
             osc_detect().unwrap_or(false)
