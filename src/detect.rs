@@ -49,6 +49,7 @@ pub struct TermMetaVars {
     pub colorterm: TermVar,
     pub term_program: TermVar,
     pub term_program_version: TermVar,
+    pub osc_response: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -134,17 +135,72 @@ impl TermVars {
 
 impl TermMetaVars {
     pub fn from_env() -> Self {
+        #[cfg(feature = "osc-detect")]
+        let osc_response = osc_detect().unwrap_or(false);
+        #[cfg(not(feature = "osc-detect"))]
+        let osc_response = false;
         Self {
             term: TermVar::from_env("TERM"),
             colorterm: TermVar::from_env("COLORTERM"),
             term_program: TermVar::from_env("TERM_PROGRAM"),
             term_program_version: TermVar::from_env("TERM_PROGRAM_VERSION"),
+            osc_response,
         }
     }
 
     fn is_dumb(&self) -> bool {
         self.term.0.as_deref() == Some("dumb")
     }
+}
+
+#[cfg(feature = "osc-detect")]
+fn osc_detect() -> io::Result<bool> {
+    use std::io::{Write, stdout};
+    use std::time::Duration;
+
+    use termina::escape::csi::{Csi, Device, Sgr};
+    use termina::escape::dcs::{Dcs, DcsRequest, DcsResponse};
+    use termina::style::RgbColor;
+    use termina::{Event, PlatformTerminal, Terminal};
+    const TEST_COLOR: RgbColor = RgbColor::new(150, 150, 150);
+
+    if !stdout().is_terminal() {
+        return Ok(false);
+    }
+
+    let mut terminal = PlatformTerminal::new()?;
+    terminal.enter_raw_mode()?;
+    write!(
+        terminal,
+        "{}{}{}{}",
+        Csi::Sgr(Sgr::Background(TEST_COLOR.into())),
+        Dcs::Request(DcsRequest::GraphicRendition),
+        Csi::Sgr(Sgr::Reset),
+        Csi::Device(Device::RequestPrimaryDeviceAttributes),
+    )?;
+    terminal.flush()?;
+
+    let mut true_color = false;
+    loop {
+        if !terminal.poll(Event::is_escape, Duration::from_millis(100).into())? {
+            return Ok(false);
+        }
+        let event = terminal.read(Event::is_escape)?;
+
+        match event {
+            Event::Dcs(Dcs::Response {
+                value: DcsResponse::GraphicRendition(sgrs),
+                ..
+            }) => {
+                true_color = sgrs.contains(&Sgr::Background(TEST_COLOR.into()));
+            }
+            Event::Csi(Csi::Device(Device::DeviceAttributes(()))) => {
+                break;
+            }
+            _ => {}
+        }
+    }
+    Ok(true_color)
 }
 
 impl OverrideVars {
@@ -266,6 +322,9 @@ impl TermProfile {
         }
         if let Some(env) = detector.detect_force_color() {
             return env;
+        }
+        if detector.vars.meta.osc_response {
+            return TermProfile::TrueColor;
         }
         if let Some(env) = detector.detect_special_cases() {
             return env;

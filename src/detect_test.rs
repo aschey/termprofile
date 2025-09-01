@@ -396,6 +396,23 @@ fn dumb_term_force_color() {
     assert_eq!(TermProfile::Ansi16, support);
 }
 
+#[test]
+fn osc_detect() {
+    let mut vars = TermVars::default();
+    vars.meta.osc_response = true;
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::TrueColor, support);
+}
+
+#[test]
+fn osc_detect_no_color() {
+    let mut vars = TermVars::default();
+    vars.meta.osc_response = true;
+    vars.overrides.no_color = truthy_var();
+    let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
+    assert_eq!(TermProfile::NoColor, support);
+}
+
 fn truthy_var() -> TermVar {
     "1".into()
 }
