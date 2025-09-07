@@ -49,7 +49,7 @@ pub struct TermMetaVars {
     pub colorterm: TermVar,
     pub term_program: TermVar,
     pub term_program_version: TermVar,
-    pub osc_response: bool,
+    pub dcs_response: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -89,24 +89,41 @@ pub struct SpecialVars {
 #[non_exhaustive]
 pub struct TmuxVars {
     pub tmux_info: String,
+    pub tmux: TermVar,
 }
 
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct TerminfoVars {
-    pub truecolor: Option<bool>,
     pub max_colors: Option<i32>,
+    pub truecolor: Option<bool>,
+}
+
+const TERM: &str = "TERM";
+const TERM_PROGRAM: &str = "TERM_PROGRAM";
+const SCREEN: &str = "screen";
+const TMUX: &str = "tmux";
+const DUMB: &str = "dumb";
+const TC: &str = "Tc";
+const RGB: &str = "RGB";
+
+#[cfg(feature = "terminfo")]
+fn get_ext_bool(info: &termini::TermInfo, name: &str) -> Option<bool> {
+    info.extended_cap(name).map(|c| c == termini::Value::True)
 }
 
 impl TerminfoVars {
     #[cfg(feature = "terminfo")]
     fn from_env(settings: &DetectorSettings) -> Self {
         if settings.enable_terminfo
-            && let Ok(info) = terminfo::Database::from_env()
+            && let Ok(info) = termini::TermInfo::from_env()
         {
             Self {
-                truecolor: info.get::<terminfo::capability::TrueColor>().map(|t| t.0),
-                max_colors: info.get::<terminfo::capability::MaxColors>().map(|c| c.0),
+                // Tc/RGB are newer terminfo extensions that seem to be sparsely documented, but
+                // some newer terminals support it since the max colors property has
+                // some compatibility issues
+                truecolor: get_ext_bool(&info, TC).or_else(|| get_ext_bool(&info, RGB)),
+                max_colors: info.number_cap(termini::NumberCapability::MaxColors),
             }
         } else {
             Self {
@@ -137,30 +154,37 @@ impl TermVars {
 
 impl TermMetaVars {
     pub fn from_env(#[allow(unused)] settings: &DetectorSettings) -> Self {
-        #[cfg(feature = "osc-detect")]
-        let osc_response = if settings.enable_osc {
-            osc_detect().unwrap_or(false)
+        let term = TermVar::from_env(TERM);
+        #[cfg(feature = "dcs-detect")]
+        let dcs_response = if settings.enable_dcs {
+            dcs_detect(term.0.as_deref().unwrap_or_default()).unwrap_or(false)
         } else {
             false
         };
-        #[cfg(not(feature = "osc-detect"))]
-        let osc_response = false;
+        #[cfg(not(feature = "dcs-detect"))]
+        let dcs_response = false;
         Self {
-            term: TermVar::from_env("TERM"),
+            term,
             colorterm: TermVar::from_env("COLORTERM"),
-            term_program: TermVar::from_env("TERM_PROGRAM"),
+            term_program: TermVar::from_env(TERM_PROGRAM),
             term_program_version: TermVar::from_env("TERM_PROGRAM_VERSION"),
-            osc_response,
+            dcs_response,
         }
     }
 
     fn is_dumb(&self) -> bool {
-        self.term.0.as_deref() == Some("dumb")
+        self.term.0.as_deref() == Some(DUMB)
     }
 }
 
-#[cfg(feature = "osc-detect")]
-fn osc_detect() -> io::Result<bool> {
+fn prefix_or_equal(var: &str, compare: &str) -> bool {
+    var == compare
+        || var.starts_with(&format!("{compare}-"))
+        || var.starts_with(&format!("{compare}."))
+}
+
+#[cfg(feature = "dcs-detect")]
+fn dcs_detect(term: &str) -> io::Result<bool> {
     use std::io::{Write, stdout};
     use std::time::Duration;
 
@@ -170,7 +194,13 @@ fn osc_detect() -> io::Result<bool> {
     use termina::{Event, PlatformTerminal, Terminal};
     const TEST_COLOR: RgbColor = RgbColor::new(150, 150, 150);
 
-    if !stdout().is_terminal() {
+    // Screen and tmux don't support this sequence
+    if !stdout().is_terminal()
+        || term == DUMB
+        || prefix_or_equal(term, TMUX)
+        || !TermVar::from_env(&TMUX.to_ascii_uppercase()).is_empty()
+        || prefix_or_equal(term, SCREEN)
+    {
         return Ok(false);
     }
 
@@ -250,27 +280,31 @@ impl TmuxVars {
     }
 
     pub fn try_from_env(settings: &DetectorSettings) -> Result<Self, io::Error> {
-        let tmux = TermVar::from_env("TMUX");
-        let term = TermVar::from_env("TERM");
-        // tmux var may be missing if using over ssh
-        let tmux_info =
-            if settings.enable_tmux_info && !tmux.is_empty() || term.value().starts_with("tmux") {
-                let mut cmd = Command::new("tmux")
-                    .arg("info")
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .spawn()?;
-                cmd.wait()?;
-                let mut out = String::new();
-                cmd.stdout
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "stdout missing"))?
-                    .read_to_string(&mut out)?;
-                out
-            } else {
-                String::new()
-            };
+        let tmux = TermVar::from_env(&TMUX.to_ascii_uppercase());
+        let term = TermVar::from_env(TERM).value();
+        let term_program = TermVar::from_env(TERM_PROGRAM).value();
+        let is_tmux = !tmux.is_empty()
+            || prefix_or_equal(&term, TMUX)
+            || prefix_or_equal(&term_program, TMUX);
 
-        Ok(Self { tmux_info })
+        // tmux var may be missing if using over ssh
+        let tmux_info = if settings.enable_tmux_info && is_tmux {
+            let mut cmd = Command::new(TMUX)
+                .arg("info")
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
+            cmd.wait()?;
+            let mut out = String::new();
+            cmd.stdout
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "stdout missing"))?
+                .read_to_string(&mut out)?;
+            out
+        } else {
+            String::new()
+        };
+
+        Ok(Self { tmux_info, tmux })
     }
 }
 
@@ -310,7 +344,7 @@ impl WindowsVars {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DetectorSettings {
-    enable_osc: bool,
+    enable_dcs: bool,
     enable_terminfo: bool,
     enable_tmux_info: bool,
 }
@@ -318,7 +352,7 @@ pub struct DetectorSettings {
 impl Default for DetectorSettings {
     fn default() -> Self {
         Self {
-            enable_osc: true,
+            enable_dcs: true,
             enable_terminfo: true,
             enable_tmux_info: true,
         }
@@ -330,8 +364,8 @@ impl DetectorSettings {
         Self::default()
     }
 
-    pub fn enable_osc(mut self, enable_osc: bool) -> Self {
-        self.enable_osc = enable_osc;
+    pub fn enable_dcs(mut self, enable_dcs: bool) -> Self {
+        self.enable_dcs = enable_dcs;
         self
     }
 
@@ -368,7 +402,7 @@ impl TermProfile {
         if let Some(env) = detector.detect_force_color() {
             return env;
         }
-        if detector.vars.meta.osc_response {
+        if detector.vars.meta.dcs_response {
             return TermProfile::TrueColor;
         }
         if let Some(env) = detector.detect_special_cases() {
@@ -521,7 +555,7 @@ impl Detector {
         }
 
         let mut is_screen = false;
-        if term.starts_with("screen.") {
+        if prefix_or_equal(&term, SCREEN) {
             term = term.replacen("screen.", "", 1);
             is_screen = true;
             profile = profile.max(TermProfile::Ansi256);
@@ -552,8 +586,7 @@ impl Detector {
         if (matches!(colorterm.as_str(), "24bit" | "truecolor")
             || self.vars.meta.colorterm.is_truthy())
             && !is_screen
-            && term_program != "tmux"
-            && !term.starts_with("tmux")
+            && !self.is_tmux()
         {
             return TermProfile::TrueColor;
         }
@@ -566,7 +599,7 @@ impl Detector {
             return TermProfile::TrueColor;
         }
 
-        const TERMINFO_MAX_COLORS: i32 = 16777216;
+        const TERMINFO_MAX_COLORS: i32 = 256i32.pow(3);
         let terminfo_colors = self.vars.terminfo.max_colors.unwrap_or(0);
         if terminfo_colors >= TERMINFO_MAX_COLORS {
             return TermProfile::TrueColor;
@@ -578,17 +611,20 @@ impl Detector {
         profile
     }
 
+    fn is_tmux(&self) -> bool {
+        !self.vars.tmux.tmux.is_empty()
+            || prefix_or_equal(&self.vars.meta.term.value(), TMUX)
+            || prefix_or_equal(&self.vars.meta.term_program.value(), TMUX)
+    }
+
     fn detect_tmux(&self) -> Option<TermProfile> {
-        if !self.vars.meta.term.value().starts_with("tmux")
-            && self.vars.tmux.tmux_info.is_empty()
-            && self.vars.meta.term_program.value() != "tmux"
-        {
+        if !self.is_tmux() {
             return None;
         }
 
         let tmux_info = self.vars.tmux.tmux_info.split("\n");
         for line in tmux_info {
-            if (line.contains("Tc") || line.contains("RGB")) && line.contains("true") {
+            if (line.contains(TC) || line.contains(RGB)) && line.contains("true") {
                 return Some(TermProfile::TrueColor);
             }
         }

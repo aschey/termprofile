@@ -15,6 +15,25 @@ Terminal environments can have several different levels of color support:
   color should be used. This is usually set by override variables.
 - **No TTY** - The output is not a TTY and no escape sequences should be used.
 
+## Feature Flags
+
+- [`terminfo`] - enables checking against the terminfo database for color
+  support
+
+- [`dcs-detect`] - enables checking for truecolor support via
+  [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html)
+
+- [`windows-version`] - Enables additional checks for color support based on the
+  current version of Windows. You may want to enable this if support for older
+  versions of Windows 10 (2016 and prior) is important to you.
+
+- [`convert`] - enables converting incompatible colors based on the color
+  support level
+
+- [`color-cache`] - adds an optional LRU cache for color conversion operations
+
+- [`ratatui`] - enables direct conversion to Ratatui style and color objects
+
 ## Usage
 
 ### Color Support Detection
@@ -208,10 +227,15 @@ Terminal multiplexers like GNU Screen and tmux affect the color support of the
 terminal. We attempt to detect these cases properly, but it's difficult to do so
 perfectly since they obscure some information from the host terminal.
 
+Newer versions of Screen support truecolor, but there doesn't seem to be a way
+to see if it's enabled, so we cannot accurately detect this case.
+
 #### SSH
 
 Environment variables may not be passed into your SSH session depending on your
-configuration, which can cause color support to be detected incorrectly.
+configuration, which can cause color support to be detected incorrectly. For
+best results, enable the `dcs-detect` feature and use a terminal that supports
+[the DECRQSS query](https://github.com/termstandard/colors?tab=readme-ov-file#querying-the-terminal).
 
 ## Acknowledgements
 

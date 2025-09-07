@@ -180,6 +180,7 @@ fn truecolor_term(#[case] term: &str) {
 #[rstest]
 #[case("xterm-256color")]
 #[case("screen.xterm-256color")]
+#[case("screen")]
 fn ansi256_term(#[case] term: &str) {
     let mut vars = TermVars::default();
     vars.meta.term = term.into();
@@ -399,7 +400,7 @@ fn dumb_term_force_color() {
 #[test]
 fn osc_detect() {
     let mut vars = TermVars::default();
-    vars.meta.osc_response = true;
+    vars.meta.dcs_response = true;
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(TermProfile::TrueColor, support);
 }
@@ -407,7 +408,7 @@ fn osc_detect() {
 #[test]
 fn osc_detect_no_color() {
     let mut vars = TermVars::default();
-    vars.meta.osc_response = true;
+    vars.meta.dcs_response = true;
     vars.overrides.no_color = truthy_var();
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(TermProfile::NoColor, support);

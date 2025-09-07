@@ -8,7 +8,7 @@ anstyle = { version = "1", optional = true }
 palette = { version = "0.7", optional = true, default-features = false, features = [
   "std",
 ] }
-terminfo = { version = "0.9", optional = true }
+termini = { version = "1", optional = true }
 lru = { version = "0.16", features = ["hashbrown"], optional = true }
 ratatui = { version = "0.29", optional = true }
 termina = { version = "0.1", optional = true }
@@ -17,11 +17,11 @@ termina = { version = "0.1", optional = true }
 os_info = { version = "3.10", default-features = false, optional = true }
 
 [features]
-default = ["terminfo"]
+default = []
 windows-version = ["dep:os_info"]
 convert = ["dep:anstyle", "dep:palette"]
-terminfo = ["dep:terminfo"]
-osc-detect = ["dep:termina"]
+terminfo = ["dep:termini"]
+dcs-detect = ["dep:termina"]
 color-cache = ["dep:lru"]
 ratatui = ["dep:ratatui"]
 
