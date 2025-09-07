@@ -17,22 +17,22 @@ Terminal environments can have several different levels of color support:
 
 ## Feature Flags
 
-- [`terminfo`] - enables checking against the terminfo database for color
+- `terminfo` - enables checking against the terminfo database for color
   support
 
-- [`dcs-detect`] - enables checking for truecolor support via
+- `dcs-detect` - enables checking for truecolor support via
   [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html)
 
-- [`windows-version`] - Enables additional checks for color support based on the
+- `windows-version` - Enables additional checks for color support based on the
   current version of Windows. You may want to enable this if support for older
   versions of Windows 10 (2016 and prior) is important to you.
 
-- [`convert`] - enables converting incompatible colors based on the color
+- `convert` - enables converting incompatible colors based on the color
   support level
 
-- [`color-cache`] - adds an optional LRU cache for color conversion operations
+- `color-cache` - adds an optional LRU cache for color conversion operations
 
-- [`ratatui`] - enables direct conversion to Ratatui style and color objects
+- `ratatui` - enables direct conversion to Ratatui style and color objects
 
 ## Usage
 
