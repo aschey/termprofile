@@ -104,12 +104,12 @@ impl AdaptableStyle for Style {
 
     #[cfg(feature = "underline-color")]
     fn get_underline_color(&self) -> Option<Self::Color> {
-        None
+        self.underline_color
     }
 
     #[cfg(not(feature = "underline-color"))]
     fn get_underline_color(&self) -> Option<Self::Color> {
-        self.underline_color
+        None
     }
 
     #[cfg(feature = "underline-color")]
