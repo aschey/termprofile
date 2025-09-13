@@ -102,10 +102,17 @@ impl AdaptableStyle for Style {
         }
     }
 
+    #[cfg(feature = "underline-color")]
+    fn get_underline_color(&self) -> Option<Self::Color> {
+        None
+    }
+
+    #[cfg(not(feature = "underline-color"))]
     fn get_underline_color(&self) -> Option<Self::Color> {
         self.underline_color
     }
 
+    #[cfg(feature = "underline-color")]
     fn underline_color(mut self, color: Option<Self::Color>) -> Self {
         if let Some(color) = color {
             self.underline_color(color)
@@ -114,6 +121,9 @@ impl AdaptableStyle for Style {
             self
         }
     }
+
+    #[cfg(not(feature = "underline-color"))]
+    fn underline_color(mut self, color: Option<Self::Color>) -> Self {}
 }
 
 #[cfg(test)]
