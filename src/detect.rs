@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::io::{self, Read};
 use std::process::{Command, Stdio};
@@ -18,6 +19,24 @@ where
 {
     fn is_terminal(&self) -> bool {
         self.is_terminal()
+    }
+}
+
+pub trait VariableSource {
+    fn var(&self, key: &str) -> Option<String>;
+}
+
+pub struct Env;
+
+impl VariableSource for Env {
+    fn var(&self, key: &str) -> Option<String> {
+        env::var(key).ok()
+    }
+}
+
+impl VariableSource for HashMap<String, String> {
+    fn var(&self, key: &str) -> Option<String> {
+        self.get(key).cloned()
     }
 }
 
@@ -141,23 +160,33 @@ impl TerminfoVars {
 
 impl TermVars {
     pub fn from_env(settings: DetectorSettings) -> Self {
+        Self::from_source(&Env, settings)
+    }
+
+    pub fn from_source<S>(source: &S, settings: DetectorSettings) -> Self
+    where
+        S: VariableSource,
+    {
         Self {
-            meta: TermMetaVars::from_env(&settings),
-            overrides: OverrideVars::from_env(),
-            special: SpecialVars::from_env(),
-            tmux: TmuxVars::from_env(&settings),
+            meta: TermMetaVars::from_source(source, &settings),
+            overrides: OverrideVars::from_source(source),
+            special: SpecialVars::from_source(source),
+            tmux: TmuxVars::from_source(source, &settings),
             terminfo: TerminfoVars::from_env(&settings),
-            windows: WindowsVars::from_env(),
+            windows: WindowsVars::from_source(source),
         }
     }
 }
 
 impl TermMetaVars {
-    pub fn from_env(#[allow(unused)] settings: &DetectorSettings) -> Self {
-        let term = TermVar::from_env(TERM);
+    pub fn from_source<S>(source: &S, #[allow(unused)] settings: &DetectorSettings) -> Self
+    where
+        S: VariableSource,
+    {
+        let term = TermVar::from_source(source, TERM);
         #[cfg(feature = "dcs-detect")]
         let dcs_response = if settings.enable_dcs {
-            dcs_detect(term.0.as_deref().unwrap_or_default()).unwrap_or(false)
+            dcs_detect(source, term.0.as_deref().unwrap_or_default()).unwrap_or(false)
         } else {
             false
         };
@@ -165,9 +194,9 @@ impl TermMetaVars {
         let dcs_response = false;
         Self {
             term,
-            colorterm: TermVar::from_env("COLORTERM"),
-            term_program: TermVar::from_env(TERM_PROGRAM),
-            term_program_version: TermVar::from_env("TERM_PROGRAM_VERSION"),
+            colorterm: TermVar::from_source(source, "COLORTERM"),
+            term_program: TermVar::from_source(source, TERM_PROGRAM),
+            term_program_version: TermVar::from_source(source, "TERM_PROGRAM_VERSION"),
             dcs_response,
         }
     }
@@ -184,7 +213,10 @@ fn prefix_or_equal(var: &str, compare: &str) -> bool {
 }
 
 #[cfg(feature = "dcs-detect")]
-fn dcs_detect(term: &str) -> io::Result<bool> {
+fn dcs_detect<S>(source: &S, term: &str) -> io::Result<bool>
+where
+    S: VariableSource,
+{
     use std::io::{Write, stdout};
     use std::time::Duration;
 
@@ -198,7 +230,7 @@ fn dcs_detect(term: &str) -> io::Result<bool> {
     if !stdout().is_terminal()
         || term == DUMB
         || prefix_or_equal(term, TMUX)
-        || !TermVar::from_env(&TMUX.to_ascii_uppercase()).is_empty()
+        || !TermVar::from_source(source, &TMUX.to_ascii_uppercase()).is_empty()
         || prefix_or_equal(term, SCREEN)
     {
         return Ok(false);
@@ -240,49 +272,61 @@ fn dcs_detect(term: &str) -> io::Result<bool> {
 }
 
 impl OverrideVars {
-    pub fn from_env() -> Self {
+    pub fn from_source<S>(source: &S) -> Self
+    where
+        S: VariableSource,
+    {
         Self {
-            no_color: TermVar::from_env("NO_COLOR"),
-            force_color: TermVar::from_env("FORCE_COLOR"),
-            clicolor: TermVar::from_env("CLICOLOR"),
-            clicolor_force: TermVar::from_env("CLICOLOR_FORCE"),
-            tty_force: TermVar::from_env("TTY_FORCE"),
+            no_color: TermVar::from_source(source, "NO_COLOR"),
+            force_color: TermVar::from_source(source, "FORCE_COLOR"),
+            clicolor: TermVar::from_source(source, "CLICOLOR"),
+            clicolor_force: TermVar::from_source(source, "CLICOLOR_FORCE"),
+            tty_force: TermVar::from_source(source, "TTY_FORCE"),
         }
     }
 }
 
 impl SpecialVars {
-    pub fn from_env() -> Self {
+    pub fn from_source<S>(source: &S) -> Self
+    where
+        S: VariableSource,
+    {
         Self {
-            github_actions: TermVar::from_env("GITHUB_ACTIONS"),
-            gitea_actions: TermVar::from_env("GITEA_ACTIONS"),
-            circleci: TermVar::from_env("CIRCLECI"),
-            gitlab_ci: TermVar::from_env("GITLAB_CI"),
-            drone: TermVar::from_env("DRONE"),
-            ci_name: TermVar::from_env("CI_NAME"),
-            google_cloud_shell: TermVar::from_env("GOOGLE_CLOUD_SHELL"),
-            appveyor: TermVar::from_env("APPVEYOR"),
-            travis: TermVar::from_env("TRAVIS"),
-            buildkite: TermVar::from_env("BUILDKITE"),
-            agent_name: TermVar::from_env("AGENT_NAME"),
-            teamcity_version: TermVar::from_env("TEAMCITY_VERSION"),
-            tf_build: TermVar::from_env("TF_BUILD"),
-            cirrus_ci: TermVar::from_env("CIRRUS_CI"),
-            con_emu_ansi: TermVar::from_env("ConEmuANSI"),
-            ci: TermVar::from_env("CI"),
+            github_actions: TermVar::from_source(source, "GITHUB_ACTIONS"),
+            gitea_actions: TermVar::from_source(source, "GITEA_ACTIONS"),
+            circleci: TermVar::from_source(source, "CIRCLECI"),
+            gitlab_ci: TermVar::from_source(source, "GITLAB_CI"),
+            drone: TermVar::from_source(source, "DRONE"),
+            ci_name: TermVar::from_source(source, "CI_NAME"),
+            google_cloud_shell: TermVar::from_source(source, "GOOGLE_CLOUD_SHELL"),
+            appveyor: TermVar::from_source(source, "APPVEYOR"),
+            travis: TermVar::from_source(source, "TRAVIS"),
+            buildkite: TermVar::from_source(source, "BUILDKITE"),
+            agent_name: TermVar::from_source(source, "AGENT_NAME"),
+            teamcity_version: TermVar::from_source(source, "TEAMCITY_VERSION"),
+            tf_build: TermVar::from_source(source, "TF_BUILD"),
+            cirrus_ci: TermVar::from_source(source, "CIRRUS_CI"),
+            con_emu_ansi: TermVar::from_source(source, "ConEmuANSI"),
+            ci: TermVar::from_source(source, "CI"),
         }
     }
 }
 
 impl TmuxVars {
-    pub fn from_env(settings: &DetectorSettings) -> Self {
-        Self::try_from_env(settings).unwrap_or_default()
+    pub fn from_source<S>(source: &S, settings: &DetectorSettings) -> Self
+    where
+        S: VariableSource,
+    {
+        Self::try_from_source(source, settings).unwrap_or_default()
     }
 
-    pub fn try_from_env(settings: &DetectorSettings) -> Result<Self, io::Error> {
-        let tmux = TermVar::from_env(&TMUX.to_ascii_uppercase());
-        let term = TermVar::from_env(TERM).value();
-        let term_program = TermVar::from_env(TERM_PROGRAM).value();
+    pub fn try_from_source<S>(source: &S, settings: &DetectorSettings) -> Result<Self, io::Error>
+    where
+        S: VariableSource,
+    {
+        let tmux = TermVar::from_source(source, &TMUX.to_ascii_uppercase());
+        let term = TermVar::from_source(source, TERM).value();
+        let term_program = TermVar::from_source(source, TERM_PROGRAM).value();
         let is_tmux = !tmux.is_empty()
             || prefix_or_equal(&term, TMUX)
             || prefix_or_equal(&term_program, TMUX);
@@ -310,7 +354,10 @@ impl TmuxVars {
 
 impl WindowsVars {
     #[cfg(all(windows, feature = "windows-version"))]
-    pub fn from_env() -> Self {
+    pub fn from_source<S>(source: &S) -> Self
+    where
+        S: VariableSource,
+    {
         use os_info::Version;
         let info = os_info::get();
         let windows_version = info.version();
@@ -322,8 +369,8 @@ impl WindowsVars {
                 (0, 0)
             };
         Self {
-            ansicon: TermVar::from_env("ANSICON"),
-            ansicon_ver: TermVar::from_env("ANSICON_VER"),
+            ansicon: TermVar::from_source(source, "ANSICON"),
+            ansicon_ver: TermVar::from_source(source, "ANSICON_VER"),
             os_version,
             build_number,
             is_windows: true,
@@ -331,10 +378,13 @@ impl WindowsVars {
     }
 
     #[cfg(not(all(windows, feature = "windows-version")))]
-    fn from_env() -> Self {
+    fn from_source<S>(source: &S) -> Self
+    where
+        S: VariableSource,
+    {
         Self {
-            ansicon: TermVar::from_env("ANSICON"),
-            ansicon_ver: TermVar::from_env("ANSICON_VER"),
+            ansicon: TermVar::from_source(source, "ANSICON"),
+            ansicon_ver: TermVar::from_source(source, "ANSICON_VER"),
             os_version: 0,
             build_number: 0,
             is_windows: true,
@@ -685,8 +735,11 @@ impl TermVar {
         Self(value.map(|v| v.trim_ascii().to_lowercase()))
     }
 
-    fn from_env(var: &str) -> Self {
-        Self::new_internal(env::var(var).ok())
+    fn from_source<S>(source: &S, var: &str) -> Self
+    where
+        S: VariableSource,
+    {
+        Self(source.var(var).map(|v| v.trim_ascii().to_lowercase()))
     }
 
     fn is_truthy(&self) -> bool {

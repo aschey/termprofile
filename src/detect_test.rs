@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use rstest::rstest;
 
 use super::{IsTerminal, TermVar, TermVars};
-use crate::TermProfile;
+use crate::{DetectorSettings, TermProfile};
 
 #[test]
 fn default_terminal() {
@@ -19,32 +21,28 @@ fn default_no_terminal() {
 
 #[test]
 fn truecolor() {
-    let mut vars = TermVars::default();
-    vars.meta.colorterm = "24bit".into();
+    let vars = make_vars(&[("COLORTERM", "24bit")]);
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(TermProfile::TrueColor, support);
 }
 
 #[test]
 fn truecolor_no_term() {
-    let mut vars = TermVars::default();
-    vars.meta.colorterm = "24bit".into();
+    let vars = make_vars(&[("COLORTERM", "24bit")]);
     let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(TermProfile::NoTty, support);
 }
 
 #[test]
 fn truecolor_truthy() {
-    let mut vars = TermVars::default();
-    vars.meta.colorterm = truthy_var();
+    let vars = make_vars(&[("COLORTERM", "1")]);
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(TermProfile::TrueColor, support);
 }
 
 #[test]
 fn ansi256_no_term() {
-    let mut vars = TermVars::default();
-    vars.meta.term = "xterm-256color".into();
+    let vars = make_vars(&[("TERM", "xterm-256color")]);
     let support = TermProfile::detect_with_vars(&ForceNoTerminal, vars);
     assert_eq!(TermProfile::NoTty, support);
 }
@@ -412,6 +410,15 @@ fn osc_detect_no_color() {
     vars.overrides.no_color = truthy_var();
     let support = TermProfile::detect_with_vars(&ForceTerminal, vars);
     assert_eq!(TermProfile::NoColor, support);
+}
+
+fn make_vars(vars: &[(&str, &str)]) -> TermVars {
+    TermVars::from_source(
+        &HashMap::from_iter(vars.iter().map(|(k, v)| (k.to_string(), v.to_string()))),
+        DetectorSettings::new()
+            .enable_dcs(false)
+            .enable_terminfo(false),
+    )
 }
 
 fn truthy_var() -> TermVar {
