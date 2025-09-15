@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::env;
 use std::io::{self, Read};
 use std::process::{Command, Stdio};
@@ -37,6 +37,24 @@ impl VariableSource for Env {
 impl VariableSource for HashMap<String, String> {
     fn var(&self, key: &str) -> Option<String> {
         self.get(key).cloned()
+    }
+}
+
+impl VariableSource for HashMap<&str, &str> {
+    fn var(&self, key: &str) -> Option<String> {
+        self.get(key).map(|v| v.to_string())
+    }
+}
+
+impl VariableSource for BTreeMap<String, String> {
+    fn var(&self, key: &str) -> Option<String> {
+        self.get(key).cloned()
+    }
+}
+
+impl VariableSource for BTreeMap<&str, &str> {
+    fn var(&self, key: &str) -> Option<String> {
+        self.get(key).map(|v| v.to_string())
     }
 }
 

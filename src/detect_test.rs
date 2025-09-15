@@ -383,7 +383,7 @@ fn osc_detect_no_color() {
 
 fn make_vars(vars: &[(&str, &str)]) -> TermVars {
     let mut vars = TermVars::from_source(
-        &HashMap::from_iter(vars.iter().map(|(k, v)| (k.to_string(), v.to_string()))),
+        &HashMap::from_iter(vars.iter().copied()),
         DetectorSettings::new()
             .enable_dcs(false)
             .enable_terminfo(false)

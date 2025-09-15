@@ -17,8 +17,7 @@ Terminal environments can have several different levels of color support:
 
 ## Feature Flags
 
-- `terminfo` - enables checking against the terminfo database for color
-  support
+- `terminfo` - enables checking against the terminfo database for color support
 
 - `dcs-detect` - enables checking for truecolor support via
   [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html)
@@ -27,8 +26,8 @@ Terminal environments can have several different levels of color support:
   current version of Windows. You may want to enable this if support for older
   versions of Windows 10 (2016 and prior) is important to you.
 
-- `convert` - enables converting incompatible colors based on the color
-  support level
+- `convert` - enables converting incompatible colors based on the color support
+  level
 
 - `color-cache` - adds an optional LRU cache for color conversion operations
 
@@ -58,6 +57,23 @@ let mut vars = TermVars::from_env(DetectorSettings::default());
 vars.overrides.force_color = "1".into();
 let profile = TermProfile::detect_with_vars(&stdout(), vars);
 println!("Profile with override: {profile:?}");
+```
+
+#### Custom Sources
+
+Environment variables can be sourced from an in-memory map instead of reading
+directly from the environment.
+
+```rust
+use std::collections::HashMap;
+use std::io::stdout;
+use termprofile::{TermProfile, TermVars, DetectorSettings};
+
+let source = HashMap::from_iter([("TERM", "xterm-256color"), ("COLORTERM", "1")]);
+
+let vars = TermVars::from_source(&source, DetectorSettings::default());
+let profile = TermProfile::detect_with_vars(&stdout(), vars);
+println!("Profile: {profile:?}");
 ```
 
 ### Color Conversion
