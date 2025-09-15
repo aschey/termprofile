@@ -386,7 +386,8 @@ fn make_vars(vars: &[(&str, &str)]) -> TermVars {
         &HashMap::from_iter(vars.iter().map(|(k, v)| (k.to_string(), v.to_string()))),
         DetectorSettings::new()
             .enable_dcs(false)
-            .enable_terminfo(false),
+            .enable_terminfo(false)
+            .enable_tmux_info(false),
     );
     // force reset windows vars to prevent inconsistencies
     vars.windows = WindowsVars::default();
