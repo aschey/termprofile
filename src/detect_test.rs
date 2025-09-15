@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rstest::rstest;
 
 use super::{IsTerminal, TermVar, TermVars};
-use crate::{DetectorSettings, TermProfile};
+use crate::{DetectorSettings, TermProfile, WindowsVars};
 
 #[test]
 fn default_terminal() {
@@ -382,12 +382,15 @@ fn osc_detect_no_color() {
 }
 
 fn make_vars(vars: &[(&str, &str)]) -> TermVars {
-    TermVars::from_source(
+    let mut vars = TermVars::from_source(
         &HashMap::from_iter(vars.iter().map(|(k, v)| (k.to_string(), v.to_string()))),
         DetectorSettings::new()
             .enable_dcs(false)
             .enable_terminfo(false),
-    )
+    );
+    // force reset windows vars to prevent inconsistencies
+    vars.windows = WindowsVars::default();
+    vars
 }
 
 fn truthy_var() -> TermVar {
