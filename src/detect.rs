@@ -82,6 +82,7 @@ pub struct OverrideVars {
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct TermMetaVars {
+    pub is_terminal: bool,
     pub term: TermVar,
     pub colorterm: TermVar,
     pub term_program: TermVar,
@@ -136,13 +137,21 @@ pub struct TerminfoVars {
     pub truecolor: Option<bool>,
 }
 
-const TERM: &str = "TERM";
-const TERM_PROGRAM: &str = "TERM_PROGRAM";
-const SCREEN: &str = "screen";
-const TMUX: &str = "tmux";
-const DUMB: &str = "dumb";
-const TC: &str = "Tc";
-const RGB: &str = "RGB";
+pub(crate) const TERM: &str = "TERM";
+pub(crate) const TERM_PROGRAM: &str = "TERM_PROGRAM";
+pub(crate) const TERM_PROGRAM_VERSION: &str = "TERM_PROGRAM_VERSION";
+pub(crate) const COLORTERM: &str = "COLORTERM";
+pub(crate) const CLICOLOR_FORCE: &str = "CLICOLOR_FORCE";
+pub(crate) const CLICOLOR: &str = "CLICOLOR";
+pub(crate) const FORCE_COLOR: &str = "FORCE_COLOR";
+pub(crate) const NO_COLOR: &str = "NO_COLOR";
+pub(crate) const TTY_FORCE: &str = "TTY_FORCE";
+
+pub(crate) const SCREEN: &str = "screen";
+pub(crate) const TMUX: &str = "tmux";
+pub(crate) const DUMB: &str = "dumb";
+pub(crate) const TC: &str = "Tc";
+pub(crate) const RGB: &str = "RGB";
 
 #[cfg(feature = "terminfo")]
 fn get_ext_bool(info: &termini::TermInfo, name: &str) -> Option<bool> {
@@ -151,9 +160,14 @@ fn get_ext_bool(info: &termini::TermInfo, name: &str) -> Option<bool> {
 
 impl TerminfoVars {
     #[cfg(feature = "terminfo")]
-    fn from_env(settings: &DetectorSettings) -> Self {
+    fn from_env<S, Q>(source: &S, settings: &DetectorSettings<Q>) -> Self
+    where
+        S: VariableSource,
+        Q: QueryTerminal,
+    {
+        let term = source.var(TERM).unwrap_or_default();
         if settings.enable_terminfo
-            && let Ok(info) = termini::TermInfo::from_env()
+            && let Ok(info) = termini::TermInfo::from_name(&term)
         {
             Self {
                 // Tc/RGB are newer terminfo extensions that seem to be sparsely documented, but
@@ -171,50 +185,73 @@ impl TerminfoVars {
     }
 
     #[cfg(not(feature = "terminfo"))]
-    fn from_env(_settings: &DetectorSettings) -> Self {
+    fn from_env<S, Q>(_source: &S, _settings: &DetectorSettings<Q>) -> Self
+    where
+        S: VariableSource,
+        Q: QueryTerminal,
+    {
         Self::default()
     }
 }
 
 impl TermVars {
-    pub fn from_env(settings: DetectorSettings) -> Self {
-        Self::from_source(&Env, settings)
+    pub fn from_env<Q, T>(out: &T, settings: DetectorSettings<Q>) -> Self
+    where
+        T: IsTerminal,
+        Q: QueryTerminal,
+    {
+        Self::from_source(&Env, out, settings)
     }
 
-    pub fn from_source<S>(source: &S, settings: DetectorSettings) -> Self
+    pub fn from_source<S, Q, T>(source: &S, out: &T, mut settings: DetectorSettings<Q>) -> Self
     where
         S: VariableSource,
+        T: IsTerminal,
+        Q: QueryTerminal,
     {
         Self {
-            meta: TermMetaVars::from_source(source, &settings),
+            meta: TermMetaVars::from_source(source, out, &mut settings),
             overrides: OverrideVars::from_source(source),
             special: SpecialVars::from_source(source),
             tmux: TmuxVars::from_source(source, &settings),
-            terminfo: TerminfoVars::from_env(&settings),
+            terminfo: TerminfoVars::from_env(source, &settings),
             windows: WindowsVars::from_source(source),
         }
     }
 }
 
 impl TermMetaVars {
-    pub fn from_source<S>(source: &S, #[allow(unused)] settings: &DetectorSettings) -> Self
+    pub fn from_source<S, Q, T>(
+        source: &S,
+        out: &T,
+        #[allow(unused)] settings: &mut DetectorSettings<Q>,
+    ) -> Self
     where
         S: VariableSource,
+        T: IsTerminal,
+        Q: QueryTerminal,
     {
         let term = TermVar::from_source(source, TERM);
         #[cfg(feature = "dcs-detect")]
         let dcs_response = if settings.enable_dcs {
-            dcs_detect(source, term.0.as_deref().unwrap_or_default()).unwrap_or(false)
+            crate::dcs_detect(
+                source,
+                out,
+                &mut settings.query_terminal,
+                term.0.as_deref().unwrap_or_default(),
+            )
+            .unwrap_or(false)
         } else {
             false
         };
         #[cfg(not(feature = "dcs-detect"))]
         let dcs_response = false;
         Self {
+            is_terminal: out.is_terminal(),
             term,
-            colorterm: TermVar::from_source(source, "COLORTERM"),
+            colorterm: TermVar::from_source(source, COLORTERM),
             term_program: TermVar::from_source(source, TERM_PROGRAM),
-            term_program_version: TermVar::from_source(source, "TERM_PROGRAM_VERSION"),
+            term_program_version: TermVar::from_source(source, TERM_PROGRAM_VERSION),
             dcs_response,
         }
     }
@@ -224,69 +261,62 @@ impl TermMetaVars {
     }
 }
 
-fn prefix_or_equal(var: &str, compare: &str) -> bool {
+pub(crate) fn prefix_or_equal(var: &str, compare: &str) -> bool {
     var == compare
         || var.starts_with(&format!("{compare}-"))
         || var.starts_with(&format!("{compare}."))
 }
 
-#[cfg(feature = "dcs-detect")]
-fn dcs_detect<S>(source: &S, term: &str) -> io::Result<bool>
-where
-    S: VariableSource,
-{
-    use std::io::{Write, stdout};
-    use std::time::Duration;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Rgb {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
 
-    use termina::escape::csi::{Csi, Device, Sgr};
-    use termina::escape::dcs::{Dcs, DcsRequest, DcsResponse};
-    use termina::style::RgbColor;
-    use termina::{Event, PlatformTerminal, Terminal};
-    const TEST_COLOR: RgbColor = RgbColor::new(150, 150, 150);
+pub enum Event {
+    BackgroundColor(Rgb),
+    DeviceAttributes,
+    Other,
+    TimedOut,
+}
 
-    // Screen and tmux don't support this sequence
-    if !stdout().is_terminal()
-        || term == DUMB
-        || prefix_or_equal(term, TMUX)
-        || !TermVar::from_source(source, &TMUX.to_ascii_uppercase()).is_empty()
-        || prefix_or_equal(term, SCREEN)
-    {
-        return Ok(false);
+pub trait QueryTerminal: io::Write {
+    fn setup(&mut self) -> io::Result<()>;
+    fn cleanup(&mut self) -> io::Result<()>;
+    fn read_event(&mut self) -> io::Result<Event>;
+}
+
+pub struct NoTerminal;
+
+impl io::Write for NoTerminal {
+    fn write(&mut self, _buf: &[u8]) -> io::Result<usize> {
+        Ok(0)
     }
 
-    let mut terminal = PlatformTerminal::new()?;
-    terminal.enter_raw_mode()?;
-    write!(
-        terminal,
-        "{}{}{}{}",
-        Csi::Sgr(Sgr::Background(TEST_COLOR.into())),
-        Dcs::Request(DcsRequest::GraphicRendition),
-        Csi::Sgr(Sgr::Reset),
-        Csi::Device(Device::RequestPrimaryDeviceAttributes),
-    )?;
-    terminal.flush()?;
-
-    let mut true_color = false;
-    loop {
-        if !terminal.poll(Event::is_escape, Duration::from_millis(100).into())? {
-            return Ok(false);
-        }
-        let event = terminal.read(Event::is_escape)?;
-
-        match event {
-            Event::Dcs(Dcs::Response {
-                value: DcsResponse::GraphicRendition(sgrs),
-                ..
-            }) => {
-                true_color = sgrs.contains(&Sgr::Background(TEST_COLOR.into()));
-            }
-            Event::Csi(Csi::Device(Device::DeviceAttributes(()))) => {
-                break;
-            }
-            _ => {}
-        }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
     }
-    Ok(true_color)
+}
+
+impl IsTerminal for NoTerminal {
+    fn is_terminal(&self) -> bool {
+        false
+    }
+}
+
+impl QueryTerminal for NoTerminal {
+    fn setup(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn cleanup(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn read_event(&mut self) -> io::Result<Event> {
+        Ok(Event::TimedOut)
+    }
 }
 
 impl OverrideVars {
@@ -295,11 +325,11 @@ impl OverrideVars {
         S: VariableSource,
     {
         Self {
-            no_color: TermVar::from_source(source, "NO_COLOR"),
-            force_color: TermVar::from_source(source, "FORCE_COLOR"),
-            clicolor: TermVar::from_source(source, "CLICOLOR"),
-            clicolor_force: TermVar::from_source(source, "CLICOLOR_FORCE"),
-            tty_force: TermVar::from_source(source, "TTY_FORCE"),
+            no_color: TermVar::from_source(source, NO_COLOR),
+            force_color: TermVar::from_source(source, FORCE_COLOR),
+            clicolor: TermVar::from_source(source, CLICOLOR),
+            clicolor_force: TermVar::from_source(source, CLICOLOR_FORCE),
+            tty_force: TermVar::from_source(source, TTY_FORCE),
         }
     }
 }
@@ -331,16 +361,21 @@ impl SpecialVars {
 }
 
 impl TmuxVars {
-    pub fn from_source<S>(source: &S, settings: &DetectorSettings) -> Self
+    pub fn from_source<S, T>(source: &S, settings: &DetectorSettings<T>) -> Self
     where
         S: VariableSource,
+        T: QueryTerminal,
     {
         Self::try_from_source(source, settings).unwrap_or_default()
     }
 
-    pub fn try_from_source<S>(source: &S, settings: &DetectorSettings) -> Result<Self, io::Error>
+    pub fn try_from_source<S, T>(
+        source: &S,
+        settings: &DetectorSettings<T>,
+    ) -> Result<Self, io::Error>
     where
         S: VariableSource,
+        T: QueryTerminal,
     {
         let tmux = TermVar::from_source(source, &TMUX.to_ascii_uppercase());
         let term = TermVar::from_source(source, TERM).value();
@@ -411,32 +446,31 @@ impl WindowsVars {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DetectorSettings {
-    enable_dcs: bool,
-    enable_terminfo: bool,
-    enable_tmux_info: bool,
+pub struct DetectorSettings<T> {
+    pub(crate) enable_dcs: bool,
+    pub(crate) enable_terminfo: bool,
+    pub(crate) enable_tmux_info: bool,
+    pub(crate) query_terminal: T,
 }
 
-impl Default for DetectorSettings {
+impl Default for DetectorSettings<NoTerminal> {
     fn default() -> Self {
         Self {
-            enable_dcs: true,
+            enable_dcs: false,
             enable_terminfo: true,
             enable_tmux_info: true,
+            query_terminal: NoTerminal,
         }
     }
 }
 
-impl DetectorSettings {
+impl DetectorSettings<NoTerminal> {
     pub fn new() -> Self {
         Self::default()
     }
+}
 
-    pub fn enable_dcs(mut self, enable_dcs: bool) -> Self {
-        self.enable_dcs = enable_dcs;
-        self
-    }
-
+impl<T> DetectorSettings<T> {
     pub fn enable_terminfo(mut self, enable_terminfo: bool) -> Self {
         self.enable_terminfo = enable_terminfo;
         self
@@ -446,22 +480,29 @@ impl DetectorSettings {
         self.enable_tmux_info = enable_tmux_info;
         self
     }
+
+    pub fn query_terminal<Q>(self, query_terminal: Q) -> DetectorSettings<Q> {
+        DetectorSettings {
+            enable_terminfo: self.enable_terminfo,
+            enable_tmux_info: self.enable_tmux_info,
+            enable_dcs: true,
+            query_terminal,
+        }
+    }
 }
 
 impl TermProfile {
-    pub fn detect<T>(output: &T, settings: DetectorSettings) -> Self
+    pub fn detect<T, Q>(output: &T, settings: DetectorSettings<Q>) -> Self
     where
         T: IsTerminal,
+        Q: QueryTerminal,
     {
-        Self::detect_with_vars(output, TermVars::from_env(settings))
+        Self::detect_with_vars(TermVars::from_env(output, settings))
     }
 
-    pub fn detect_with_vars<T>(output: &T, vars: TermVars) -> Self
-    where
-        T: IsTerminal,
-    {
+    pub fn detect_with_vars(vars: TermVars) -> Self {
         let detector = Detector { vars };
-        let profile = detector.detect_tty(output);
+        let profile = detector.detect_tty();
         if let Some(env) = detector.detect_no_color()
             && profile > TermProfile::NoTty
         {
@@ -489,11 +530,8 @@ struct Detector {
 }
 
 impl Detector {
-    fn detect_tty<T>(&self, output: &T) -> TermProfile
-    where
-        T: IsTerminal,
-    {
-        if (!self.vars.overrides.tty_force.is_truthy() && !output.is_terminal())
+    fn detect_tty(&self) -> TermProfile {
+        if (!self.vars.overrides.tty_force.is_truthy() && !self.vars.meta.is_terminal)
             || self.vars.meta.is_dumb()
         {
             TermProfile::NoTty
@@ -753,21 +791,21 @@ impl TermVar {
         Self(value.map(|v| v.trim_ascii().to_lowercase()))
     }
 
-    fn from_source<S>(source: &S, var: &str) -> Self
+    pub(crate) fn from_source<S>(source: &S, var: &str) -> Self
     where
         S: VariableSource,
     {
         Self(source.var(var).map(|v| v.trim_ascii().to_lowercase()))
     }
 
-    fn is_truthy(&self) -> bool {
+    pub(crate) fn is_truthy(&self) -> bool {
         self.0
             .as_deref()
             .map(|v| v == "1" || v == "true" || v == "yes" || v == "on")
             .unwrap_or(false)
     }
 
-    fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.0.as_deref().map(|v| v.is_empty()).unwrap_or(true)
     }
 

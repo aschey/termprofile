@@ -2,24 +2,24 @@
 
 A library to detect and handle terminal color/styling support.
 
-Terminal environments can have several different levels of color support:
+Terminal environments can have several levels of color support:
 
-- **true color/RGB/24 bit** - any valid RGB color, many modern terminals support
-  this
+- **true color** - sometimes referred to as RGB or 24bit, can set any valid RGB
+  color
 - **ANSI 256** - Indexed colors in the
-  [256 color list](https://www.ditig.com/256-colors-cheat-sheet), most older
-  terminals support this
+  [256 color list](https://www.ditig.com/256-colors-cheat-sheet)
 - **ANSI 16** - Only the first 16 colors in the ANSI color list, commonly seen
   in non-graphical environments like login shells
-- **No Color** - Text modifiers like bold and italics may be supported, but no
-  color should be used. This is usually set by override variables.
+- **No Color** - Text modifiers like bold and italics can be used, but no colors
+  should be emitted. This is usually set by override variables.
 - **No TTY** - The output is not a TTY and no escape sequences should be used.
 
 ## Feature Flags
 
-- `terminfo` - enables checking against the terminfo database for color support
+- `terminfo` - enables checking against the terminfo database for color support.
+  See [terminfo](#terminfo) for details.
 
-- `dcs-detect` - enables checking for truecolor support via
+- `dcs-detect` - enables querying for truecolor support via
   [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html)
 
 - `windows-version` - Enables additional checks for color support based on the
@@ -53,9 +53,9 @@ Variables can be overridden before detecting the color profile.
 use std::io::stdout;
 use termprofile::{TermProfile, TermVars, DetectorSettings};
 
-let mut vars = TermVars::from_env(DetectorSettings::default());
+let mut vars = TermVars::from_env(&stdout(), DetectorSettings::default());
 vars.overrides.force_color = "1".into();
-let profile = TermProfile::detect_with_vars(&stdout(), vars);
+let profile = TermProfile::detect_with_vars(vars);
 println!("Profile with override: {profile:?}");
 ```
 
@@ -71,12 +71,15 @@ use termprofile::{TermProfile, TermVars, DetectorSettings};
 
 let source = HashMap::from_iter([("TERM", "xterm-256color"), ("COLORTERM", "1")]);
 
-let vars = TermVars::from_source(&source, DetectorSettings::default());
-let profile = TermProfile::detect_with_vars(&stdout(), vars);
+let vars = TermVars::from_source(&source, &stdout(), DetectorSettings::default());
+let profile = TermProfile::detect_with_vars(vars);
 println!("Profile: {profile:?}");
 ```
 
 ### Color Conversion
+
+Colors can be automatically adapted to the nearest compatible type based on the
+given profile.
 
 ```rust
 use termprofile::TermProfile;
@@ -108,6 +111,9 @@ assert_eq!(color.adapt(), Some(Ansi256Color(240).into()));
 
 ### Style Conversion
 
+Styles can be converted as well. Text modifiers will be removed if the profile
+is set to NoTTY.
+
 ```rust
 use termprofile::TermProfile;
 use std::io::stdout;
@@ -131,8 +137,11 @@ assert_eq!(
 
 ### Ratatui Conversions
 
-If the `ratatui` feature is enabled, all of the above conversions work with
-Ratatui types.
+`anstyle` is used for color conversions due to its compatibility with other
+terminal color crates, but it does not have support for a `Color::Reset`
+variant, which can be important for TUI apps. If the `ratatui` feature is
+enabled, all of the above conversions work with Ratatui types, allowing for full
+compatibility without requiring `anstyle` as an intermediate layer.
 
 ```rust
 use termprofile::TermProfile;
@@ -161,11 +170,14 @@ set_color_cache_size(256.try_into().expect("non-zero size"));
 
 ## Color Detection Details
 
-Unfortunately, there is no standard way to accurately detect color support in
-terminals. There is a way to
-[query specifically for true color support](https://github.com/termstandard/colors?tab=readme-ov-file#querying-the-terminal),
-but few terminals support this. Instead, we must rely on a number of environment
-variables that have organically emerged as a pseudo-standard over time.
+Sadly, there is no standard way to accurately detect color support in terminals.
+Instead, we must rely on a number of environment variables and other methods
+that have organically emerged as a pseudo-standard over time.
+
+### Querying the Terminal
+
+The most reliable way to detect true color support is to
+[query for it](https://github.com/termstandard/colors?tab=readme-ov-file#querying-the-terminal).
 
 ### Terminal Variables
 
@@ -187,9 +199,9 @@ detection behavior.
 
 - [`CLICOLOR_FORCE`](https://bixense.com/clicolors) /
   [`FORCE_COLOR`](https://force-color.org) - two competing standards that seem
-  to do the same thing. We treat both the same way. When this is set to a truthy
-  value, the color support level will be at least ANSI 16, with other variables
-  used to decide if further support is available.
+  to do the same thing. When either of these is set to a truthy value, the color
+  support level will be at least ANSI 16, with other variables used to decide if
+  further support is available.
 
   In addition to true/false values,
   [chalk](https://github.com/chalk/chalk?tab=readme-ov-file#chalklevel) supports
@@ -215,8 +227,22 @@ detection behavior.
   this can be set to a truthy value to treat the terminal like a TTY even if the
   call to
   [`is_terminal`](https://doc.rust-lang.org/std/io/trait.IsTerminal.html)
-  returns false. May be useful in some nonstandard platforms or in some
-  scenarios like reading output from a subprocess.
+  returns false. May be useful when running a subprocess or in some nonstandard
+  platforms such as webassembly.
+
+### Terminfo
+
+If the `terminfo` feature is enabled, the
+[terminfo](https://en.wikipedia.org/wiki/Terminfo) database is queried for
+available properties:
+
+- `colors` - returns the number of available colors. Due to limitations with
+  terminfo, true color terminals generally only report 256 colors with this
+  property. `TERM` values ending in -direct (`kitty-direct` or
+  `alacritty-direct`, for example) are the exception and may report color values
+  \> 256 here.
+- `RGB` and `Tc` - nonstandard extensions to terminfo, this is a boolean that
+  may be set in some newer terminals to indicate truecolor support.
 
 ### Windows
 
@@ -232,8 +258,8 @@ TTY, color support detection likely won't work automatically. We try to account
 for some variables supplied by common CI providers, but we can't account for all
 of them.
 
-If your CI provider isn't supported, you can use `CLICOLOR_FORCE` to force color
-output.
+If your CI provider isn't supported, you can use `FORCE_COLOR` or
+`CLICOLOR_FORCE` to force color output.
 
 ### Other Special Cases
 

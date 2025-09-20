@@ -29,12 +29,20 @@ ratatui = ["dep:ratatui"]
 [dev-dependencies]
 anstyle-owo-colors = "2.0.4"
 owo-colors = "4.2.2"
-rand = "0.9.1"
+rand = "0.9.2"
 rstest = "0.26.1"
 
 [[example]]
 name = "convert"
-required-features = ["convert"]
+required-features = ["convert", "dcs-detect"]
+
+[[example]]
+name = "detect"
+required-features = ["dcs-detect"]
+
+[[example]]
+name = "override"
+required-features = ["dcs-detect"]
 
 [package.metadata.docs.rs]
 all-features = true

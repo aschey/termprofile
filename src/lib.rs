@@ -3,12 +3,16 @@
 
 #[cfg(feature = "convert")]
 mod convert;
+#[cfg(feature = "dcs-detect")]
+mod dcs;
 mod detect;
 
 #[cfg(feature = "convert")]
 pub use anstyle;
 #[cfg(feature = "convert")]
 pub use convert::*;
+#[cfg(feature = "dcs-detect")]
+pub use dcs::*;
 pub use detect::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

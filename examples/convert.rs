@@ -30,7 +30,7 @@ fn main() {
     } else {
         RgbColor(rand_rgb(), rand_rgb(), rand_rgb()).into()
     };
-    let profile = TermProfile::detect(&stdout(), DetectorSettings::default());
+    let profile = TermProfile::detect(&stdout(), DetectorSettings::with_dcs().unwrap());
     println!("Detected profile: {profile:?}");
     print!("Adapted: ");
     print_color(profile, color);
