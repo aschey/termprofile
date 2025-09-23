@@ -118,7 +118,7 @@ assert_eq!(color.adapt(), Some(Ansi256Color(240).into()));
 ### Style Conversion
 
 Styles can be converted as well. Text modifiers will be removed if the profile
-is set to NoTTY.
+is set to `NoTTY`.
 
 ```rust
 use termprofile::TermProfile;
