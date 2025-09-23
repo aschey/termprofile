@@ -17,14 +17,13 @@ termina = { version = "0.1", optional = true }
 os_info = { version = "3.10", default-features = false, optional = true }
 
 [features]
-default = []
 windows-version = ["dep:os_info"]
 convert = ["dep:anstyle", "dep:palette"]
-underline-color = ["ratatui?/underline-color"]
 terminfo = ["dep:termini"]
 dcs-detect = ["dep:termina"]
 color-cache = ["dep:lru"]
 ratatui = ["dep:ratatui"]
+ratatui-underline-color = ["ratatui/underline-color"]
 
 [dev-dependencies]
 anstyle-owo-colors = "2.0.4"

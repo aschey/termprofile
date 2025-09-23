@@ -16,22 +16,28 @@ Terminal environments can have several levels of color support:
 
 ## Feature Flags
 
-- `terminfo` - enables checking against the terminfo database for color support.
-  See [terminfo](#terminfo) for details.
+All features are disabled by default.
 
-- `dcs-detect` - enables querying for truecolor support via
-  [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html)
+- `terminfo` - Enables checking against the terminfo database for color support.
+  See [terminfo](#terminfo).
+
+- `dcs-detect` - Enables querying for truecolor support via
+  [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html). See
+  [querying the terminal](#querying-the-terminal).
 
 - `windows-version` - Enables additional checks for color support based on the
-  current version of Windows. You may want to enable this if support for older
-  versions of Windows 10 (2016 and prior) is important to you.
+  current version of Windows. See [windows](#windows).
 
-- `convert` - enables converting incompatible colors based on the color support
-  level
+- `convert` - Enables converting incompatible colors based on the color support
+  level.
 
-- `color-cache` - adds an optional LRU cache for color conversion operations
+- `color-cache` - Adds an optional LRU cache for color conversion operations.
+  This can be useful when rendering under high frame rates.
 
-- `ratatui` - enables direct conversion to Ratatui style and color objects
+- `ratatui` - Enables direct conversion to Ratatui style and color objects.
+
+- `ratatui-underline-color` - Enables Ratatui's `underline-color` feature and
+  includes underline colors in Ratatui style conversions.
 
 ## Usage
 
@@ -178,6 +184,9 @@ that have organically emerged as a pseudo-standard over time.
 
 The most reliable way to detect true color support is to
 [query for it](https://github.com/termstandard/colors?tab=readme-ov-file#querying-the-terminal).
+This is preferable over environment variables because it works over SSH and is
+not susceptible to ambiguity caused by terminal multiplexers. Unfortunately,
+this method isn't supported in many terminals yet.
 
 ### Terminal Variables
 
@@ -248,8 +257,10 @@ available properties:
 
 If the `windows-version` feature is enabled, additional checks will be performed
 to detect support for ANSI colors based on the active version of Windows. You
-may want to enable this if support for older versions of Windows 10 (2016 and
-prior) is important to you.
+may want to enable this if support for older versions of Windows 10 (prior to
+build
+[#14931](https://devblogs.microsoft.com/commandline/24-bit-color-in-the-windows-console/),
+released in 2016) is important to you.
 
 ### CI Platforms
 

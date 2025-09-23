@@ -102,17 +102,17 @@ impl AdaptableStyle for Style {
         }
     }
 
-    #[cfg(feature = "underline-color")]
+    #[cfg(feature = "ratatui-underline-color")]
     fn get_underline_color(&self) -> Option<Self::Color> {
         self.underline_color
     }
 
-    #[cfg(not(feature = "underline-color"))]
+    #[cfg(not(feature = "ratatui-underline-color"))]
     fn get_underline_color(&self) -> Option<Self::Color> {
         None
     }
 
-    #[cfg(feature = "underline-color")]
+    #[cfg(feature = "ratatui-underline-color")]
     fn underline_color(mut self, color: Option<Self::Color>) -> Self {
         if let Some(color) = color {
             self.underline_color(color)
@@ -122,8 +122,8 @@ impl AdaptableStyle for Style {
         }
     }
 
-    #[cfg(not(feature = "underline-color"))]
-    fn underline_color(mut self, color: Option<Self::Color>) -> Self {
+    #[cfg(not(feature = "ratatui-underline-color"))]
+    fn underline_color(mut self, _color: Option<Self::Color>) -> Self {
         self
     }
 }
