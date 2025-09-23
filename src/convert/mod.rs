@@ -108,7 +108,7 @@ const COLOR_INTERVALS: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
 
 #[cfg(feature = "color-cache")]
 static COLOR_CACHE: std::sync::LazyLock<std::sync::Mutex<lru::LruCache<RgbColor, u8>>> =
-    std::sync::LazyLock::new(|| lru::LruCache::new(256.try_into().unwrap()).into());
+    std::sync::LazyLock::new(|| lru::LruCache::new(256.try_into().expect("invalid size")).into());
 
 #[cfg(feature = "color-cache")]
 static CACHE_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
@@ -118,19 +118,28 @@ pub fn set_color_cache_enabled(enabled: bool) {
     CACHE_ENABLED.store(enabled, std::sync::atomic::Ordering::SeqCst);
 }
 
+/// # Panics
+///
+/// If the lock on the cache is poisoned
 #[cfg(feature = "color-cache")]
 pub fn set_color_cache_size(size: std::num::NonZeroUsize) {
-    COLOR_CACHE.lock().unwrap().resize(size);
+    COLOR_CACHE.lock().expect("lock poisoned").resize(size);
 }
 
+/// # Panics
+///
+/// If the lock on the cache is poisoned
 #[cfg(feature = "color-cache")]
 pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
     if CACHE_ENABLED.load(std::sync::atomic::Ordering::Relaxed) {
-        if let Some(cached) = COLOR_CACHE.lock().unwrap().get(&color) {
+        if let Some(cached) = COLOR_CACHE.lock().expect("lock poisoned").get(&color) {
             return *cached;
         }
         let converted = rgb_to_ansi256_inner(color);
-        COLOR_CACHE.lock().unwrap().put(color, converted);
+        COLOR_CACHE
+            .lock()
+            .expect("lock poisoned")
+            .put(color, converted);
         converted
     } else {
         rgb_to_ansi256_inner(color)

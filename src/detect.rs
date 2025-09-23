@@ -42,7 +42,7 @@ impl VariableSource for HashMap<String, String> {
 
 impl VariableSource for HashMap<&str, &str> {
     fn var(&self, key: &str) -> Option<String> {
-        self.get(key).map(|v| v.to_string())
+        self.get(key).map(ToString::to_string)
     }
 }
 
@@ -54,7 +54,7 @@ impl VariableSource for BTreeMap<String, String> {
 
 impl VariableSource for BTreeMap<&str, &str> {
     fn var(&self, key: &str) -> Option<String> {
-        self.get(key).map(|v| v.to_string())
+        self.get(key).map(ToString::to_string)
     }
 }
 
@@ -224,7 +224,7 @@ impl TermMetaVars {
     pub fn from_source<S, Q, T>(
         source: &S,
         out: &T,
-        #[allow(unused)] settings: &mut DetectorSettings<Q>,
+        #[cfg_attr(not(feature = "dcs-detect"), expect(unused))] settings: &mut DetectorSettings<Q>,
     ) -> Self
     where
         S: VariableSource,
@@ -504,7 +504,7 @@ impl TermProfile {
         let detector = Detector { vars };
         let profile = detector.detect_tty();
         if let Some(env) = detector.detect_no_color()
-            && profile > TermProfile::NoTty
+            && profile > Self::NoTty
         {
             return env;
         }
@@ -512,12 +512,12 @@ impl TermProfile {
             return env;
         }
         if detector.vars.meta.dcs_response {
-            return TermProfile::TrueColor;
+            return Self::TrueColor;
         }
         if let Some(env) = detector.detect_special_cases() {
             return env;
         }
-        if profile == TermProfile::NoTty {
+        if profile == Self::NoTty {
             return profile;
         }
 
@@ -806,10 +806,10 @@ impl TermVar {
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.0.as_deref().map(|v| v.is_empty()).unwrap_or(true)
+        self.0.as_deref().map(str::is_empty).unwrap_or(true)
     }
 
-    fn or(&self, other: &TermVar) -> Self {
+    fn or(&self, other: &Self) -> Self {
         Self(self.0.clone().or_else(|| other.0.clone()))
     }
 

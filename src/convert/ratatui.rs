@@ -21,50 +21,49 @@ impl AdaptableColor for Color {
 
     fn as_ansi_16(&self) -> Option<anstyle::AnsiColor> {
         Some(match self {
-            Color::Reset => None?,
-            Color::Black => anstyle::AnsiColor::Black,
-            Color::Red => anstyle::AnsiColor::Red,
-            Color::Green => anstyle::AnsiColor::Green,
-            Color::Yellow => anstyle::AnsiColor::Yellow,
-            Color::Blue => anstyle::AnsiColor::Blue,
-            Color::Magenta => anstyle::AnsiColor::Magenta,
-            Color::Cyan => anstyle::AnsiColor::Cyan,
-            Color::Gray => anstyle::AnsiColor::White,
-            Color::DarkGray => anstyle::AnsiColor::BrightBlack,
-            Color::LightRed => anstyle::AnsiColor::BrightRed,
-            Color::LightGreen => anstyle::AnsiColor::BrightGreen,
-            Color::LightYellow => anstyle::AnsiColor::BrightYellow,
-            Color::LightBlue => anstyle::AnsiColor::BrightBlue,
-            Color::LightMagenta => anstyle::AnsiColor::BrightMagenta,
-            Color::LightCyan => anstyle::AnsiColor::BrightCyan,
-            Color::White => anstyle::AnsiColor::BrightWhite,
-            Color::Rgb(_, _, _) => None?,
-            Color::Indexed(_) => None?,
+            Self::Reset => None?,
+            Self::Black => anstyle::AnsiColor::Black,
+            Self::Red => anstyle::AnsiColor::Red,
+            Self::Green => anstyle::AnsiColor::Green,
+            Self::Yellow => anstyle::AnsiColor::Yellow,
+            Self::Blue => anstyle::AnsiColor::Blue,
+            Self::Magenta => anstyle::AnsiColor::Magenta,
+            Self::Cyan => anstyle::AnsiColor::Cyan,
+            Self::Gray => anstyle::AnsiColor::White,
+            Self::DarkGray => anstyle::AnsiColor::BrightBlack,
+            Self::LightRed => anstyle::AnsiColor::BrightRed,
+            Self::LightGreen => anstyle::AnsiColor::BrightGreen,
+            Self::LightYellow => anstyle::AnsiColor::BrightYellow,
+            Self::LightBlue => anstyle::AnsiColor::BrightBlue,
+            Self::LightMagenta => anstyle::AnsiColor::BrightMagenta,
+            Self::LightCyan => anstyle::AnsiColor::BrightCyan,
+            Self::White => anstyle::AnsiColor::BrightWhite,
+            Self::Rgb(_, _, _) | Self::Indexed(_) => None?,
         })
     }
 
     fn from_ansi_256(color: anstyle::Ansi256Color) -> Self {
-        Color::Indexed(color.0)
+        Self::Indexed(color.0)
     }
 
     fn from_ansi_16(color: anstyle::AnsiColor) -> Self {
         match color {
-            anstyle::AnsiColor::Black => Color::Black,
-            anstyle::AnsiColor::Red => Color::Red,
-            anstyle::AnsiColor::Green => Color::Green,
-            anstyle::AnsiColor::Yellow => Color::Yellow,
-            anstyle::AnsiColor::Blue => Color::Blue,
-            anstyle::AnsiColor::Magenta => Color::Magenta,
-            anstyle::AnsiColor::Cyan => Color::Cyan,
-            anstyle::AnsiColor::White => Color::Gray,
-            anstyle::AnsiColor::BrightBlack => Color::DarkGray,
-            anstyle::AnsiColor::BrightRed => Color::LightRed,
-            anstyle::AnsiColor::BrightGreen => Color::LightGreen,
-            anstyle::AnsiColor::BrightYellow => Color::LightYellow,
-            anstyle::AnsiColor::BrightBlue => Color::LightBlue,
-            anstyle::AnsiColor::BrightMagenta => Color::LightMagenta,
-            anstyle::AnsiColor::BrightCyan => Color::LightCyan,
-            anstyle::AnsiColor::BrightWhite => Color::White,
+            anstyle::AnsiColor::Black => Self::Black,
+            anstyle::AnsiColor::Red => Self::Red,
+            anstyle::AnsiColor::Green => Self::Green,
+            anstyle::AnsiColor::Yellow => Self::Yellow,
+            anstyle::AnsiColor::Blue => Self::Blue,
+            anstyle::AnsiColor::Magenta => Self::Magenta,
+            anstyle::AnsiColor::Cyan => Self::Cyan,
+            anstyle::AnsiColor::White => Self::Gray,
+            anstyle::AnsiColor::BrightBlack => Self::DarkGray,
+            anstyle::AnsiColor::BrightRed => Self::LightRed,
+            anstyle::AnsiColor::BrightGreen => Self::LightGreen,
+            anstyle::AnsiColor::BrightYellow => Self::LightYellow,
+            anstyle::AnsiColor::BrightBlue => Self::LightBlue,
+            anstyle::AnsiColor::BrightMagenta => Self::LightMagenta,
+            anstyle::AnsiColor::BrightCyan => Self::LightCyan,
+            anstyle::AnsiColor::BrightWhite => Self::White,
         }
     }
 }
@@ -73,7 +72,7 @@ impl AdaptableStyle for Style {
     type Color = Color;
 
     fn empty() -> Self {
-        Style::default()
+        Self::default()
     }
 
     fn get_fg_color(&self) -> Option<Self::Color> {

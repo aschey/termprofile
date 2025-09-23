@@ -1,4 +1,5 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![forbid(clippy::unwrap_used)]
 #![doc = include_str!("../README.md")]
 
 #[cfg(feature = "convert")]
