@@ -230,7 +230,7 @@ detection behavior.
   support level.
 
 - [`CLICOLOR`](https://bixense.com/clicolors) - Will enable colors if `TERM` is
-  unset and the outut is a terminal.
+  unset and the output is a terminal.
 
 - [`NO_COLOR`](https://bixense.com/clicolors) - When set to a truthy value, this
   forces colors to be disabled.

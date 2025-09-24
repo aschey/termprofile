@@ -95,7 +95,7 @@ pub struct OverrideVars {
     pub clicolor: TermVar,
     /// `NO_COLOR` environment variable - disables color support.
     pub no_color: TermVar,
-    /// `TTY_FORCE` environment variable - forces the ouput to behave like a TTY.
+    /// `TTY_FORCE` environment variable - forces the output to behave like a TTY.
     pub tty_force: TermVar,
 }
 
@@ -343,7 +343,7 @@ pub enum DcsEvent {
     BackgroundColor(Rgb),
     /// Device attributes returned by the terminal - used to signal the end of the query.
     DeviceAttributes,
-    /// A miscellanious event.
+    /// A miscellaneous event.
     Other,
     /// Timed reading the next event.
     TimedOut,
