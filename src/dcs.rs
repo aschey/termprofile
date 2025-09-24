@@ -6,13 +6,30 @@ use termina::escape::csi::{Csi, Device, Sgr};
 use termina::escape::dcs::{Dcs, DcsRequest, DcsResponse};
 use termina::style::{ColorSpec, RgbColor};
 
-use crate::detect::Event;
+use crate::detect::DcsEvent;
 use crate::{
-    DUMB, DetectorSettings, IsTerminal, QueryTerminal, Rgb, SCREEN, TMUX, TTY_FORCE, TermVar,
-    VariableSource, prefix_or_equal,
+    DUMB, DetectorSettings, EnvVarSource, IsTerminal, QueryTerminal, Rgb, SCREEN, TMUX, TTY_FORCE,
+    TermVar, prefix_or_equal,
 };
 
+impl<T> DetectorSettings<T>
+where
+    T: QueryTerminal,
+{
+    /// Query the terminal for true color support using the given query method.
+    #[cfg(feature = "dcs-detect")]
+    pub fn query_terminal<Q>(self, query_terminal: Q) -> DetectorSettings<Q> {
+        DetectorSettings {
+            enable_terminfo: self.enable_terminfo,
+            enable_tmux_info: self.enable_tmux_info,
+            enable_dcs: true,
+            query_terminal,
+        }
+    }
+}
+
 impl DetectorSettings<DefaultTerminal> {
+    /// Create a new [`DetectorSettings`] with DCS querying enabled.
     pub fn with_dcs() -> io::Result<Self> {
         Ok(Self {
             enable_dcs: true,
@@ -61,12 +78,12 @@ impl QueryTerminal for DefaultTerminal {
         self.terminal.enter_cooked_mode()
     }
 
-    fn read_event(&mut self) -> io::Result<Event> {
+    fn read_event(&mut self) -> io::Result<DcsEvent> {
         if !self
             .terminal
             .poll(termina::Event::is_escape, self.timeout.into())?
         {
-            return Ok(Event::TimedOut);
+            return Ok(DcsEvent::TimedOut);
         }
         let event = self.terminal.read(termina::Event::is_escape)?;
         Ok(match event {
@@ -77,7 +94,7 @@ impl QueryTerminal for DefaultTerminal {
                 .iter()
                 .find_map(|s| {
                     if let Sgr::Background(ColorSpec::TrueColor(rgb)) = s {
-                        Event::BackgroundColor(Rgb {
+                        DcsEvent::BackgroundColor(Rgb {
                             red: rgb.red,
                             green: rgb.green,
                             blue: rgb.blue,
@@ -87,11 +104,11 @@ impl QueryTerminal for DefaultTerminal {
                         None
                     }
                 })
-                .unwrap_or(Event::Other),
+                .unwrap_or(DcsEvent::Other),
             termina::Event::Csi(Csi::Device(Device::DeviceAttributes(()))) => {
-                Event::DeviceAttributes
+                DcsEvent::DeviceAttributes
             }
-            _ => Event::Other,
+            _ => DcsEvent::Other,
         })
     }
 }
@@ -103,7 +120,7 @@ pub(crate) fn dcs_detect<S, Q, T>(
     term: &str,
 ) -> io::Result<bool>
 where
-    S: VariableSource,
+    S: EnvVarSource,
     Q: QueryTerminal,
     T: IsTerminal,
 {
@@ -146,16 +163,16 @@ where
         let event = query_terminal.read_event()?;
 
         match event {
-            Event::TimedOut => {
+            DcsEvent::TimedOut => {
                 return Ok(false);
             }
-            Event::BackgroundColor(rgb) => {
+            DcsEvent::BackgroundColor(rgb) => {
                 true_color = rgb == TEST_COLOR;
             }
-            Event::DeviceAttributes => {
+            DcsEvent::DeviceAttributes => {
                 break;
             }
-            Event::Other => {}
+            DcsEvent::Other => {}
         }
     }
     query_terminal.cleanup()?;

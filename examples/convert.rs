@@ -6,30 +6,7 @@ use owo_colors::OwoColorize;
 use termprofile::{DetectorSettings, TermProfile};
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let color: Color = if args.len() == 4 {
-        let rgb = (
-            args[1].parse::<u8>().unwrap(),
-            args[2].parse::<u8>().unwrap(),
-            args[3].parse::<u8>().unwrap(),
-        );
-        RgbColor(rgb.0, rgb.1, rgb.2).into()
-    } else if args.len() == 2 {
-        let parts: Vec<_> = args[1].split(",").collect();
-        if parts.len() == 3 {
-            let rgb = (
-                parts[0].parse::<u8>().unwrap(),
-                parts[1].parse::<u8>().unwrap(),
-                parts[2].parse::<u8>().unwrap(),
-            );
-            RgbColor(rgb.0, rgb.1, rgb.2).into()
-        } else {
-            let i: u8 = args[1].parse().unwrap();
-            Ansi256Color(i).into()
-        }
-    } else {
-        RgbColor(rand_rgb(), rand_rgb(), rand_rgb()).into()
-    };
+    let color = parse_input();
     let profile = TermProfile::detect(&stdout(), DetectorSettings::with_dcs().unwrap());
     println!("Detected profile: {profile:?}");
     print!("Adapted: ");
@@ -63,5 +40,32 @@ fn color_to_str(color: &Color) -> String {
         Color::Ansi(ansi) => format!("{ansi:?}"),
         Color::Ansi256(color) => color.0.to_string(),
         Color::Rgb(color) => format!("rgb({},{},{})", color.0, color.1, color.2),
+    }
+}
+
+fn parse_input() -> Color {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() == 4 {
+        let rgb = (
+            args[1].parse::<u8>().unwrap(),
+            args[2].parse::<u8>().unwrap(),
+            args[3].parse::<u8>().unwrap(),
+        );
+        RgbColor(rgb.0, rgb.1, rgb.2).into()
+    } else if args.len() == 2 {
+        let parts: Vec<_> = args[1].split(",").collect();
+        if parts.len() == 3 {
+            let rgb = (
+                parts[0].parse::<u8>().unwrap(),
+                parts[1].parse::<u8>().unwrap(),
+                parts[2].parse::<u8>().unwrap(),
+            );
+            RgbColor(rgb.0, rgb.1, rgb.2).into()
+        } else {
+            let i: u8 = args[1].parse().unwrap();
+            Ansi256Color(i).into()
+        }
+    } else {
+        RgbColor(rand_rgb(), rand_rgb(), rand_rgb()).into()
     }
 }

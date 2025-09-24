@@ -4,7 +4,7 @@ use std::io;
 use rstest::rstest;
 
 use super::{IsTerminal, TermVar, TermVars};
-use crate::{DetectorSettings, Event, QueryTerminal, Rgb, TermProfile, WindowsVars};
+use crate::{DcsEvent, DetectorSettings, QueryTerminal, Rgb, TermProfile, WindowsVars};
 
 #[test]
 fn default_terminal() {
@@ -145,8 +145,15 @@ fn force_color_extended_override() {
 }
 
 #[test]
-fn clicolor() {
+fn clicolor_no_tty() {
     let vars = make_vars(&ForceNoTerminal, &[("CLICOLOR", "1")]);
+    let support = TermProfile::detect_with_vars(vars);
+    assert_eq!(TermProfile::NoTty, support);
+}
+
+#[test]
+fn clicolor_tty() {
+    let vars = make_vars(&ForceTerminal, &[("CLICOLOR", "1")]);
     let support = TermProfile::detect_with_vars(vars);
     assert_eq!(TermProfile::Ansi16, support);
 }
@@ -397,7 +404,7 @@ fn dumb_term_force_color() {
 }
 
 struct FakeTerminal {
-    events: VecDeque<Event>,
+    events: VecDeque<DcsEvent>,
 }
 
 impl QueryTerminal for FakeTerminal {
@@ -409,7 +416,7 @@ impl QueryTerminal for FakeTerminal {
         Ok(())
     }
 
-    fn read_event(&mut self) -> std::io::Result<Event> {
+    fn read_event(&mut self) -> std::io::Result<DcsEvent> {
         Ok(self.events.pop_front().unwrap())
     }
 }
@@ -434,12 +441,12 @@ fn dsc_detect() {
             .enable_tmux_info(false)
             .query_terminal(FakeTerminal {
                 events: VecDeque::from_iter([
-                    Event::BackgroundColor(Rgb {
+                    DcsEvent::BackgroundColor(Rgb {
                         red: 150,
                         green: 150,
                         blue: 150,
                     }),
-                    Event::DeviceAttributes,
+                    DcsEvent::DeviceAttributes,
                 ]),
             }),
     );
@@ -461,12 +468,12 @@ fn dsc_detect_no_color() {
             .enable_tmux_info(false)
             .query_terminal(FakeTerminal {
                 events: VecDeque::from_iter([
-                    Event::BackgroundColor(Rgb {
+                    DcsEvent::BackgroundColor(Rgb {
                         red: 150,
                         green: 150,
                         blue: 150,
                     }),
-                    Event::DeviceAttributes,
+                    DcsEvent::DeviceAttributes,
                 ]),
             }),
     );

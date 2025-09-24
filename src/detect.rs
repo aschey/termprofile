@@ -9,131 +9,187 @@ use crate::TermProfile;
 // https://bixense.com/clicolors/
 // https://no-color.org/
 
+/// Custom trait for determining if something is a terminal. This mirrors the trait from
+/// [`std::io`], but that one is sealed and not able to be implemented on custom types.
 pub trait IsTerminal {
+    /// Returns true if the current object is a terminal.
     fn is_terminal(&self) -> bool;
 }
 
 impl<T> IsTerminal for T
 where
-    T: std::io::IsTerminal,
+    T: io::IsTerminal,
 {
     fn is_terminal(&self) -> bool {
         self.is_terminal()
     }
 }
 
-pub trait VariableSource {
+/// Trait for implementing custom environment variable sources. This is useful if you want to
+/// source environment variables from somewhere other than [`std::env::var`].
+pub trait EnvVarSource {
+    /// Look up the variable in the source.
     fn var(&self, key: &str) -> Option<String>;
 }
 
+/// Source that pulls environment variables from [`std::env::var`].
 pub struct Env;
 
-impl VariableSource for Env {
+impl EnvVarSource for Env {
     fn var(&self, key: &str) -> Option<String> {
         env::var(key).ok()
     }
 }
 
-impl VariableSource for HashMap<String, String> {
+impl EnvVarSource for HashMap<String, String> {
     fn var(&self, key: &str) -> Option<String> {
         self.get(key).cloned()
     }
 }
 
-impl VariableSource for HashMap<&str, &str> {
+impl EnvVarSource for HashMap<&str, &str> {
     fn var(&self, key: &str) -> Option<String> {
         self.get(key).map(ToString::to_string)
     }
 }
 
-impl VariableSource for BTreeMap<String, String> {
+impl EnvVarSource for BTreeMap<String, String> {
     fn var(&self, key: &str) -> Option<String> {
         self.get(key).cloned()
     }
 }
 
-impl VariableSource for BTreeMap<&str, &str> {
+impl EnvVarSource for BTreeMap<&str, &str> {
     fn var(&self, key: &str) -> Option<String> {
         self.get(key).map(ToString::to_string)
     }
 }
 
+/// Collection of variables used to determine color support.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct TermVars {
+    /// Variables for overriding terminal behavior.
     pub overrides: OverrideVars,
+    /// Metadata about the terminal itself.
     pub meta: TermMetaVars,
+    /// Special cases for specific platforms.
     pub special: SpecialVars,
+    /// tmux-specific variables.
     pub tmux: TmuxVars,
+    /// Windows information.
     pub windows: WindowsVars,
+    /// Information sourced from terminfo.
     pub terminfo: TerminfoVars,
 }
 
+/// Variables for overriding terminal behavior.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct OverrideVars {
+    /// `FORCE_COLOR` environment variable - forces color support.
     pub force_color: TermVar,
+    /// `CLICOLOR_FORCE` environment variable - forces color support.
     pub clicolor_force: TermVar,
+    /// `CLICOLOR` environment variable - enables color support if the output is a terminal.
     pub clicolor: TermVar,
+    /// `NO_COLOR` environment variable - disables color support.
     pub no_color: TermVar,
+    /// `TTY_FORCE` environment variable - forces the ouput to behave like a TTY.
     pub tty_force: TermVar,
 }
 
+/// Metadata about the terminal itself.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct TermMetaVars {
+    /// Whether the current environment is a terminal.
     pub is_terminal: bool,
+    /// `TERM` environment variable - current terminal name.;
     pub term: TermVar,
+    /// `COLORTERM` environment variable - enables true color support.
     pub colorterm: TermVar,
+    /// `TERM_PROGRAM` environment variable - current terminal program name.
     pub term_program: TermVar,
+    /// `TERM_PROGRAM_VERSION` environment variable - current terminal program version.
     pub term_program_version: TermVar,
+    /// Whether the DCS query for true color support returned true.
     pub dcs_response: bool,
 }
 
+/// Windows information.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct WindowsVars {
+    /// `ANSICON` environment variable - set by the ANSICON program, if enabled.
     pub ansicon: TermVar,
+    /// `ANSICON_VER` environment variable - set by the ANSICON program, if enabled.
     pub ansicon_ver: TermVar,
+    /// Windows build number.
     pub build_number: u64,
+    /// Windows OS version.
     pub os_version: u64,
+    /// True if the current system is Windows.
     pub is_windows: bool,
     // Note: Windows terminal developers recommend against using WT_SESSION
     // https://github.com/Textualize/rich/issues/140
 }
 
+/// Special cases for specific platforms.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct SpecialVars {
+    /// `GOOGLE_CLOUD_SHELL` environment variable.
     pub google_cloud_shell: TermVar,
+    /// `GITHUB_ACTIONS` environment variable.
     pub github_actions: TermVar,
+    /// `GITEA_ACTIONS` environment variable.
     pub gitea_actions: TermVar,
+    /// `CIRCLECI` environment variable.
     pub circleci: TermVar,
+    /// `TRAVIS` environment variable.
     pub travis: TermVar,
+    /// `APPVEYOR` environment variable.
     pub appveyor: TermVar,
+    /// `GITLAB_CI` environment variable.
     pub gitlab_ci: TermVar,
+    /// `BUILDKITE` environment variable.
     pub buildkite: TermVar,
+    /// `DRONE` environment variable.
     pub drone: TermVar,
+    /// `TEAMCITY_VERSION` environment variable.
     pub teamcity_version: TermVar,
+    /// `TF_BUILD` environment variable.
     pub tf_build: TermVar,
+    /// `AGENT_NAME` environment variable.
     pub agent_name: TermVar,
+    /// `CIRRUS_CI` environment variable.
     pub cirrus_ci: TermVar,
+    /// `CI_NAME` environment variable.
     pub ci_name: TermVar,
+    /// `ConEmuANSI` environment variable.
     pub con_emu_ansi: TermVar,
+    /// `CI` environment variable.
     pub ci: TermVar,
 }
 
+/// tmux-specific variables.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct TmuxVars {
+    /// Output from the `tmux info` command.
     pub tmux_info: String,
+    /// `TMUX` environment variable - set if running in tmux.
     pub tmux: TermVar,
 }
 
+/// Information sourced from terminfo.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct TerminfoVars {
+    /// Max colors from the terminfo entry.
     pub max_colors: Option<i32>,
+    /// Truecolor terminfo extension, this is non-standard.
     pub truecolor: Option<bool>,
 }
 
@@ -162,7 +218,7 @@ impl TerminfoVars {
     #[cfg(feature = "terminfo")]
     fn from_env<S, Q>(source: &S, settings: &DetectorSettings<Q>) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
         Q: QueryTerminal,
     {
         let term = source.var(TERM).unwrap_or_default();
@@ -187,7 +243,7 @@ impl TerminfoVars {
     #[cfg(not(feature = "terminfo"))]
     fn from_env<S, Q>(_source: &S, _settings: &DetectorSettings<Q>) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
         Q: QueryTerminal,
     {
         Self::default()
@@ -195,6 +251,7 @@ impl TerminfoVars {
 }
 
 impl TermVars {
+    /// Load the terminal variables from the current environment.
     pub fn from_env<Q, T>(out: &T, settings: DetectorSettings<Q>) -> Self
     where
         T: IsTerminal,
@@ -203,9 +260,10 @@ impl TermVars {
         Self::from_source(&Env, out, settings)
     }
 
+    /// Load the terminal variables from the given source.
     pub fn from_source<S, Q, T>(source: &S, out: &T, mut settings: DetectorSettings<Q>) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
         T: IsTerminal,
         Q: QueryTerminal,
     {
@@ -221,13 +279,14 @@ impl TermVars {
 }
 
 impl TermMetaVars {
+    /// Load the variables from the given source.
     pub fn from_source<S, Q, T>(
         source: &S,
         out: &T,
         #[cfg_attr(not(feature = "dcs-detect"), expect(unused))] settings: &mut DetectorSettings<Q>,
     ) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
         T: IsTerminal,
         Q: QueryTerminal,
     {
@@ -267,26 +326,40 @@ pub(crate) fn prefix_or_equal(var: &str, compare: &str) -> bool {
         || var.starts_with(&format!("{compare}."))
 }
 
+/// RGB Color.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Rgb {
+    /// Red component.
     pub red: u8,
+    /// Green component.
     pub green: u8,
+    /// Blue component.
     pub blue: u8,
 }
 
-pub enum Event {
+/// Event returned by a DCS query.
+pub enum DcsEvent {
+    /// Background color queried from the terminal.
     BackgroundColor(Rgb),
+    /// Device attributes returned by the terminal - used to signal the end of the query.
     DeviceAttributes,
+    /// A miscellanious event.
     Other,
+    /// Timed reading the next event.
     TimedOut,
 }
 
+/// Trait for defining a terminal source that can be queried.
 pub trait QueryTerminal: io::Write {
+    /// Set up the terminal by enabling raw mode.
     fn setup(&mut self) -> io::Result<()>;
+    /// Clean up the terminal by disabling raw mode.
     fn cleanup(&mut self) -> io::Result<()>;
-    fn read_event(&mut self) -> io::Result<Event>;
+    /// Read the next event from the terminal.
+    fn read_event(&mut self) -> io::Result<DcsEvent>;
 }
 
+/// Default implementation for [`QueryTerminal`] that doesn't query anything.
 pub struct NoTerminal;
 
 impl io::Write for NoTerminal {
@@ -314,15 +387,16 @@ impl QueryTerminal for NoTerminal {
         Ok(())
     }
 
-    fn read_event(&mut self) -> io::Result<Event> {
-        Ok(Event::TimedOut)
+    fn read_event(&mut self) -> io::Result<DcsEvent> {
+        Ok(DcsEvent::TimedOut)
     }
 }
 
 impl OverrideVars {
+    /// Load the variables from the given source.
     pub fn from_source<S>(source: &S) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
     {
         Self {
             no_color: TermVar::from_source(source, NO_COLOR),
@@ -335,9 +409,10 @@ impl OverrideVars {
 }
 
 impl SpecialVars {
+    /// Load the variables from the given source.
     pub fn from_source<S>(source: &S) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
     {
         Self {
             github_actions: TermVar::from_source(source, "GITHUB_ACTIONS"),
@@ -361,20 +436,22 @@ impl SpecialVars {
 }
 
 impl TmuxVars {
+    /// Load the variables from the given source.
     pub fn from_source<S, T>(source: &S, settings: &DetectorSettings<T>) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
         T: QueryTerminal,
     {
         Self::try_from_source(source, settings).unwrap_or_default()
     }
 
+    /// Try to load the variables from the given source.
     pub fn try_from_source<S, T>(
         source: &S,
         settings: &DetectorSettings<T>,
     ) -> Result<Self, io::Error>
     where
-        S: VariableSource,
+        S: EnvVarSource,
         T: QueryTerminal,
     {
         let tmux = TermVar::from_source(source, &TMUX.to_ascii_uppercase());
@@ -406,10 +483,11 @@ impl TmuxVars {
 }
 
 impl WindowsVars {
+    /// Load the variables from the given source.
     #[cfg(all(windows, feature = "windows-version"))]
     pub fn from_source<S>(source: &S) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
     {
         use os_info::Version;
         let info = os_info::get();
@@ -430,10 +508,11 @@ impl WindowsVars {
         }
     }
 
+    /// Load the variables from the given source.
     #[cfg(not(all(windows, feature = "windows-version")))]
-    fn from_source<S>(source: &S) -> Self
+    pub fn from_source<S>(source: &S) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
     {
         Self {
             ansicon: TermVar::from_source(source, "ANSICON"),
@@ -445,6 +524,7 @@ impl WindowsVars {
     }
 }
 
+/// Settings for enabling extra detector features.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DetectorSettings<T> {
     pub(crate) enable_dcs: bool,
@@ -465,33 +545,29 @@ impl Default for DetectorSettings<NoTerminal> {
 }
 
 impl DetectorSettings<NoTerminal> {
+    /// Create a new [`DetectorSettings`].
     pub fn new() -> Self {
         Self::default()
     }
 }
 
 impl<T> DetectorSettings<T> {
+    /// Enable or disable querying the terminfo database.
+    #[cfg(feature = "terminfo")]
     pub fn enable_terminfo(mut self, enable_terminfo: bool) -> Self {
         self.enable_terminfo = enable_terminfo;
         self
     }
 
+    /// Enable or disable querying the tmux information if tmux is used.
     pub fn enable_tmux_info(mut self, enable_tmux_info: bool) -> Self {
         self.enable_tmux_info = enable_tmux_info;
         self
     }
-
-    pub fn query_terminal<Q>(self, query_terminal: Q) -> DetectorSettings<Q> {
-        DetectorSettings {
-            enable_terminfo: self.enable_terminfo,
-            enable_tmux_info: self.enable_tmux_info,
-            enable_dcs: true,
-            query_terminal,
-        }
-    }
 }
 
 impl TermProfile {
+    /// Detect the output's profile information.
     pub fn detect<T, Q>(output: &T, settings: DetectorSettings<Q>) -> Self
     where
         T: IsTerminal,
@@ -500,6 +576,7 @@ impl TermProfile {
         Self::detect_with_vars(TermVars::from_env(output, settings))
     }
 
+    /// Detect the output's profile information using the given variables as the source.
     pub fn detect_with_vars(vars: TermVars) -> Self {
         let detector = Detector { vars };
         let profile = detector.detect_tty();
@@ -548,11 +625,7 @@ impl Detector {
     }
 
     fn detect_force_color(&self) -> Option<TermProfile> {
-        let mut profile = if self.vars.overrides.clicolor.is_truthy() {
-            Some(TermProfile::Ansi16)
-        } else {
-            None
-        };
+        let mut profile = None;
         let force_color = self
             .vars
             .overrides
@@ -627,7 +700,7 @@ impl Detector {
 
         let mut profile = TermProfile::NoColor;
 
-        if term.is_empty() {
+        if term.is_empty() && !self.vars.overrides.clicolor.is_truthy() {
             if let Some(win_profile) = self.detect_windows() {
                 profile = win_profile;
             }
@@ -776,10 +849,13 @@ impl Detector {
     }
 }
 
+/// Represents an environment variable.
 #[derive(Clone, Debug, Default)]
 pub struct TermVar(Option<String>);
 
 impl TermVar {
+    /// Create a new [`TermVar`]. This will normalize the supplied string by trimming whitespace
+    /// and converting it to lowercase.
     pub fn new<S>(value: S) -> Self
     where
         S: Into<String>,
@@ -791,9 +867,10 @@ impl TermVar {
         Self(value.map(|v| v.trim_ascii().to_lowercase()))
     }
 
-    pub(crate) fn from_source<S>(source: &S, var: &str) -> Self
+    /// Create a new [`TermVar`] by looking up the key from the given source.
+    pub fn from_source<S>(source: &S, var: &str) -> Self
     where
-        S: VariableSource,
+        S: EnvVarSource,
     {
         Self(source.var(var).map(|v| v.trim_ascii().to_lowercase()))
     }
