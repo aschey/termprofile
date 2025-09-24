@@ -644,10 +644,6 @@ impl Detector {
             _ => {}
         };
 
-        if self.vars.overrides.clicolor.is_truthy() {
-            profile = profile.max(Some(TermProfile::Ansi16));
-        }
-
         profile.map(|p| p.max(self.detect_term_vars()))
     }
 
