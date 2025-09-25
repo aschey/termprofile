@@ -1,10 +1,10 @@
 use std::io;
 use std::time::Duration;
 
-use termina::Terminal;
 use termina::escape::csi::{Csi, Device, Sgr};
 use termina::escape::dcs::{Dcs, DcsRequest, DcsResponse};
 use termina::style::{ColorSpec, RgbColor};
+use termina::{PlatformTerminal, Terminal};
 
 use crate::detect::DcsEvent;
 use crate::{
@@ -40,20 +40,24 @@ impl DetectorSettings<DefaultTerminal> {
     }
 }
 
+/// Default terminal querying implementation that queries `stdout`.
 pub struct DefaultTerminal {
-    terminal: termina::PlatformTerminal,
+    terminal: PlatformTerminal,
     timeout: Duration,
 }
 
 impl DefaultTerminal {
+    /// Creates a new [`DefaultTerminal`].
     pub fn new() -> io::Result<Self> {
         Ok(Self {
-            terminal: termina::PlatformTerminal::new()?,
-            timeout: std::time::Duration::from_millis(100),
+            terminal: PlatformTerminal::new()?,
+            timeout: Duration::from_millis(100),
         })
     }
 
-    pub fn timeout(mut self, timeout: std::time::Duration) -> Self {
+    /// Sets the timeout for reading events from the terminal.
+    /// The default value is 100ms.
+    pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
     }

@@ -15,6 +15,7 @@ use palette::Srgb;
 use crate::TermProfile;
 
 impl TermProfile {
+    /// Adapts the color into its nearest compatible variant.
     pub fn adapt_color<C>(&self, color: C) -> Option<C>
     where
         C: AdaptableColor,
@@ -28,7 +29,7 @@ impl TermProfile {
             if *self >= Self::Ansi256 {
                 Some(color)
             } else {
-                Some(C::from_ansi_16(ansi256_to_ansi(index.0)))
+                Some(C::from_ansi_16(ansi256_to_ansi16(index.0)))
             }
         } else if let Some(rgb_color) = color.as_rgb() {
             if *self == Self::TrueColor {
@@ -38,7 +39,7 @@ impl TermProfile {
                 if *self == Self::Ansi256 {
                     Some(C::from_ansi_256(ansi256_index.into()))
                 } else {
-                    Some(C::from_ansi_16(ansi256_to_ansi(ansi256_index)))
+                    Some(C::from_ansi_16(ansi256_to_ansi16(ansi256_index)))
                 }
             }
         } else {
@@ -46,12 +47,13 @@ impl TermProfile {
         }
     }
 
+    /// Adapts the style into its nearest compatible variant.
     pub fn adapt_style<S>(&self, mut style: S) -> S
     where
         S: AdaptableStyle,
     {
         if *self == Self::NoTty {
-            return S::empty();
+            return S::default();
         }
         if let Some(color) = style.get_fg_color() {
             style = style.fg_color(self.adapt_color(color));
@@ -66,7 +68,8 @@ impl TermProfile {
     }
 }
 
-pub fn ansi256_to_ansi(ansi256_index: u8) -> AnsiColor {
+/// Converts the indexed ANSI color into its nearest 16-color variant.
+pub fn ansi256_to_ansi16(ansi256_index: u8) -> AnsiColor {
     match ANSI_256_TO_16[&ansi256_index] {
         0 => AnsiColor::Black,
         1 => AnsiColor::Red,
@@ -113,6 +116,7 @@ static COLOR_CACHE: std::sync::LazyLock<std::sync::Mutex<lru::LruCache<RgbColor,
 #[cfg(feature = "color-cache")]
 static CACHE_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+/// Enables the color cache.
 #[cfg(feature = "color-cache")]
 pub fn set_color_cache_enabled(enabled: bool) {
     CACHE_ENABLED.store(enabled, std::sync::atomic::Ordering::SeqCst);
@@ -185,6 +189,7 @@ fn rgb_to_ansi256_inner(color: RgbColor) -> u8 {
     }
 }
 
+/// Converts the indexed ANSI color into its RGB equivalent.
 pub fn ansi256_to_rgb(ansi: Ansi256Color) -> RgbColor {
     ANSI_256_TO_RGB[ansi.0 as usize]
 }

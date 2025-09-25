@@ -2,6 +2,7 @@ use anstyle::{Ansi256Color, AnsiColor};
 
 use crate::{AdaptableColor, TermProfile};
 
+/// A color that can have different variants on the terminal's color support profile.
 pub struct ProfileColor<C> {
     default: C,
     ansi_256: Option<Ansi256Color>,
@@ -13,6 +14,7 @@ impl<C> ProfileColor<C>
 where
     C: AdaptableColor + Clone,
 {
+    /// Creates a new [`ProfileColor`].
     pub fn new(default_color: C, profile: TermProfile) -> Self {
         Self {
             default: default_color,
@@ -22,6 +24,7 @@ where
         }
     }
 
+    /// Sets the color variant used when the terminal supports 256 colors.
     pub fn ansi_256<T>(mut self, color: T) -> Self
     where
         T: Into<C>,
@@ -30,6 +33,7 @@ where
         self
     }
 
+    /// Sets the color variant when the terminal supports 16 colors.
     pub fn ansi_16<T>(mut self, color: T) -> Self
     where
         T: Into<C>,
@@ -38,6 +42,7 @@ where
         self
     }
 
+    /// Returns the adapted color based on the profile.
     pub fn adapt(&self) -> Option<C> {
         let mut color = self.default.clone();
         if self.profile <= TermProfile::Ansi256

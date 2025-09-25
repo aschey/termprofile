@@ -71,10 +71,6 @@ impl AdaptableColor for Color {
 impl AdaptableStyle for Style {
     type Color = Color;
 
-    fn empty() -> Self {
-        Self::default()
-    }
-
     fn get_fg_color(&self) -> Option<Self::Color> {
         self.fg
     }
