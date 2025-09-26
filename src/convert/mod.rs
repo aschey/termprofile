@@ -91,24 +91,6 @@ pub fn ansi256_to_ansi16(ansi256_index: u8) -> AnsiColor {
     }
 }
 
-fn get_color_index<const N: usize>(val: u8, breakpoints: [u8; N]) -> usize {
-    breakpoints.iter().position(|p| val < *p).unwrap_or(N)
-}
-
-fn red_color_index(val: u8) -> usize {
-    get_color_index(val, [49, 116, 156, 196, 236])
-}
-
-fn green_color_index(val: u8) -> usize {
-    get_color_index(val, [48, 116, 156, 196, 236])
-}
-
-fn blue_color_index(val: u8) -> usize {
-    get_color_index(val, [48, 116, 156, 196, 236])
-}
-
-const COLOR_INTERVALS: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
-
 #[cfg(feature = "color-cache")]
 static COLOR_CACHE: std::sync::LazyLock<std::sync::Mutex<lru::LruCache<RgbColor, u8>>> =
     std::sync::LazyLock::new(|| lru::LruCache::new(256.try_into().expect("invalid size")).into());
@@ -160,6 +142,29 @@ pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
     rgb_to_ansi256_inner(color)
 }
 
+fn get_color_index<const N: usize>(val: u8, breakpoints: [u8; N]) -> usize {
+    breakpoints.iter().position(|p| val < *p).unwrap_or(N)
+}
+
+// breakpoints were calculated using the distance to each color component
+// FF0000 for red, etc.
+fn red_color_index(val: u8) -> usize {
+    get_color_index(val, [49, 116, 156, 196, 236])
+}
+
+fn green_color_index(val: u8) -> usize {
+    get_color_index(val, [48, 116, 156, 196, 236])
+}
+
+fn blue_color_index(val: u8) -> usize {
+    get_color_index(val, [48, 116, 156, 196, 236])
+}
+
+const COLOR_INTERVALS: [u8; 6] = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
+
+// Implementation adapted from here with some tweaks:
+// https://github.com/charmbracelet/x/blob/f402b009fe75b24997fc2342a2605ecc3a268486/ansi/color.go
+// See https://invisible-island.net/xterm/xterm.faq.html#color_by_number
 fn rgb_to_ansi256_inner(color: RgbColor) -> u8 {
     let srgb = Srgb::new(color.r(), color.g(), color.b());
 
@@ -199,8 +204,12 @@ pub fn ansi256_to_rgb(ansi: Ansi256Color) -> RgbColor {
     ANSI_256_TO_RGB[ansi.0 as usize]
 }
 
+// Color distance is tricky. There's a bunch of ways to do it and which way is best
+// is a bit subjective.
 // After trying a bunch of methods, this seems to get the best results on average.
 // See https://stackoverflow.com/a/9085524
+// We save a bit of computational power by not taking the square root here, since
+// we only care about comparing relative distance, not absolute distances.
 fn distance_squared(rgb1: Srgb<u8>, rgb2: Srgb<u8>) -> u32 {
     let r_mean = (rgb1.red as i32 + rgb2.red as i32) / 2;
     let r = (rgb1.red as i32) - (rgb2.red as i32);
