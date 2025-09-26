@@ -2,7 +2,11 @@ use std::process::{Command, Stdio};
 
 fn main() {
     let handle = Command::new("cargo")
-        .args(["run", "--example=convert", "--features=convert,dcs-detect"])
+        .args([
+            "run",
+            "--example=convert",
+            "--features=convert,query-detect",
+        ])
         .stdout(Stdio::piped())
         // set TTY_FORCE to force the profile detector to treat the subprocess like a TTY
         .env("TTY_FORCE", "1")

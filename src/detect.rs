@@ -283,7 +283,9 @@ impl TermMetaVars {
     pub fn from_source<S, Q, T>(
         source: &S,
         out: &T,
-        #[cfg_attr(not(feature = "dcs-detect"), expect(unused))] settings: &mut DetectorSettings<Q>,
+        #[cfg_attr(not(feature = "query-detect"), expect(unused))] settings: &mut DetectorSettings<
+            Q,
+        >,
     ) -> Self
     where
         S: EnvVarSource,
@@ -291,7 +293,7 @@ impl TermMetaVars {
         Q: QueryTerminal,
     {
         let term = TermVar::from_source(source, TERM);
-        #[cfg(feature = "dcs-detect")]
+        #[cfg(feature = "query-detect")]
         let dcs_response = if settings.enable_dcs {
             crate::dcs_detect(
                 source,
@@ -303,7 +305,7 @@ impl TermMetaVars {
         } else {
             false
         };
-        #[cfg(not(feature = "dcs-detect"))]
+        #[cfg(not(feature = "query-detect"))]
         let dcs_response = false;
         Self {
             is_terminal: out.is_terminal(),

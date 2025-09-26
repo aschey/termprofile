@@ -17,7 +17,6 @@ where
     T: QueryTerminal,
 {
     /// Query the terminal for true color support using the given query method.
-    #[cfg(feature = "dcs-detect")]
     pub fn query_terminal<Q>(self, query_terminal: Q) -> DetectorSettings<Q> {
         DetectorSettings {
             enable_terminfo: self.enable_terminfo,
@@ -29,8 +28,8 @@ where
 }
 
 impl DetectorSettings<DefaultTerminal> {
-    /// Create a new [`DetectorSettings`] with DCS querying enabled.
-    pub fn with_dcs() -> io::Result<Self> {
+    /// Create a new [`DetectorSettings`] with terminal querying enabled.
+    pub fn with_query() -> io::Result<Self> {
         Ok(Self {
             enable_dcs: true,
             enable_terminfo: true,

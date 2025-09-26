@@ -5,23 +5,23 @@
 
 #[cfg(feature = "convert")]
 mod convert;
-#[cfg(feature = "dcs-detect")]
-mod dcs;
 mod detect;
+#[cfg(feature = "query-detect")]
+mod query;
 
 #[cfg(feature = "convert")]
 pub use anstyle;
 #[cfg(feature = "convert")]
 pub use convert::*;
-#[cfg(feature = "dcs-detect")]
-pub use dcs::*;
 pub use detect::*;
+#[cfg(feature = "query-detect")]
+pub use query::*;
 
 /// Terminal color profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TermProfile {
     /// No terminal is attached. This may happen if the output is piped or if the program was not
-    /// run from a TTY.
+    /// ran from a TTY.
     NoTty,
     /// Text modifiers may be used, but no colors should be emitted.
     NoColor,

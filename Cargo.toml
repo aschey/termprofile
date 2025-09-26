@@ -20,7 +20,7 @@ os_info = { version = "3.10", default-features = false, optional = true }
 windows-version = ["dep:os_info"]
 convert = ["dep:anstyle", "dep:palette"]
 terminfo = ["dep:termini"]
-dcs-detect = ["dep:termina"]
+query-detect = ["dep:termina"]
 color-cache = ["dep:lru"]
 ratatui = ["dep:ratatui"]
 ratatui-underline-color = ["ratatui/underline-color"]
@@ -51,19 +51,19 @@ redundant_closure_for_method_calls = "warn"
 
 [[example]]
 name = "convert"
-required-features = ["convert", "dcs-detect"]
+required-features = ["convert", "query-detect"]
 
 [[example]]
 name = "detect"
-required-features = ["dcs-detect"]
+required-features = ["query-detect"]
 
 [[example]]
 name = "override"
-required-features = ["dcs-detect"]
+required-features = ["query-detect"]
 
 [[example]]
 name = "ratatui_app"
-required-features = ["ratatui", "convert", "dcs-detect"]
+required-features = ["ratatui", "convert", "query-detect"]
 
 [package.metadata.docs.rs]
 all-features = true

@@ -14,7 +14,7 @@ fn main() -> io::Result<()> {
 }
 
 fn run(mut terminal: DefaultTerminal) -> io::Result<()> {
-    let profile = TermProfile::detect(&stdout(), DetectorSettings::with_dcs()?);
+    let profile = TermProfile::detect(&stdout(), DetectorSettings::with_query()?);
 
     loop {
         terminal.draw(|f| draw(&profile, f))?;

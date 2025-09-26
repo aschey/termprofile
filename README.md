@@ -21,7 +21,7 @@ All features are disabled by default.
 - `terminfo` - Enables checking against the terminfo database for color support.
   See [terminfo](#terminfo).
 
-- `dcs-detect` - Enables querying for truecolor support via
+- `query-detect` - Enables querying for truecolor support via
   [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html). See
   [querying the terminal](#querying-the-terminal).
 
@@ -290,7 +290,7 @@ to see if it's enabled, so we cannot accurately detect this case.
 
 Environment variables may not be passed into your SSH session depending on your
 configuration, which can cause color support to be detected incorrectly. For
-best results, enable the `dcs-detect` feature and use a terminal that supports
+best results, enable the `query-detect` feature and use a terminal that supports
 [the DECRQSS query](https://github.com/termstandard/colors?tab=readme-ov-file#querying-the-terminal).
 
 ## Acknowledgements
