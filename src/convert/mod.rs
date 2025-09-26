@@ -116,12 +116,14 @@ static COLOR_CACHE: std::sync::LazyLock<std::sync::Mutex<lru::LruCache<RgbColor,
 #[cfg(feature = "color-cache")]
 static CACHE_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
-/// Enables the color cache.
+/// Enables the LRU color cache.
 #[cfg(feature = "color-cache")]
 pub fn set_color_cache_enabled(enabled: bool) {
     CACHE_ENABLED.store(enabled, std::sync::atomic::Ordering::SeqCst);
 }
 
+/// Sets the size of the LRU color cache.
+///
 /// # Panics
 ///
 /// If the lock on the cache is poisoned
@@ -130,6 +132,8 @@ pub fn set_color_cache_size(size: std::num::NonZeroUsize) {
     COLOR_CACHE.lock().expect("lock poisoned").resize(size);
 }
 
+/// Converts the RGB color to an ANSI 256 color.
+///
 /// # Panics
 ///
 /// If the lock on the cache is poisoned
@@ -150,6 +154,7 @@ pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
     }
 }
 
+/// Converts the RGB color to an ANSI 256 color.
 #[cfg(not(feature = "color-cache"))]
 pub fn rgb_to_ansi256(color: RgbColor) -> u8 {
     rgb_to_ansi256_inner(color)
@@ -194,7 +199,8 @@ pub fn ansi256_to_rgb(ansi: Ansi256Color) -> RgbColor {
     ANSI_256_TO_RGB[ansi.0 as usize]
 }
 
-// after trying a bunch of methods, this seems to get the best results on average - https://stackoverflow.com/a/9085524
+// After trying a bunch of methods, this seems to get the best results on average.
+// See https://stackoverflow.com/a/9085524
 fn distance_squared(rgb1: Srgb<u8>, rgb2: Srgb<u8>) -> u32 {
     let r_mean = (rgb1.red as i32 + rgb2.red as i32) / 2;
     let r = (rgb1.red as i32) - (rgb2.red as i32);
