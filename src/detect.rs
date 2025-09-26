@@ -294,8 +294,8 @@ impl TermMetaVars {
     {
         let term = TermVar::from_source(source, TERM);
         #[cfg(feature = "query-detect")]
-        let dcs_response = if settings.enable_dcs {
-            crate::dcs_detect(
+        let dcs_response = if settings.enable_query {
+            crate::query_detect(
                 source,
                 out,
                 &mut settings.query_terminal,
@@ -529,7 +529,7 @@ impl WindowsVars {
 /// Settings for enabling extra detector features.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DetectorSettings<T> {
-    pub(crate) enable_dcs: bool,
+    pub(crate) enable_query: bool,
     pub(crate) enable_terminfo: bool,
     pub(crate) enable_tmux_info: bool,
     pub(crate) query_terminal: T,
@@ -538,7 +538,7 @@ pub struct DetectorSettings<T> {
 impl Default for DetectorSettings<NoTerminal> {
     fn default() -> Self {
         Self {
-            enable_dcs: false,
+            enable_query: false,
             enable_terminfo: true,
             enable_tmux_info: true,
             query_terminal: NoTerminal,

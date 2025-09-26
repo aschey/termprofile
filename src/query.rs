@@ -21,7 +21,7 @@ where
         DetectorSettings {
             enable_terminfo: self.enable_terminfo,
             enable_tmux_info: self.enable_tmux_info,
-            enable_dcs: true,
+            enable_query: true,
             query_terminal,
         }
     }
@@ -31,7 +31,7 @@ impl DetectorSettings<DefaultTerminal> {
     /// Create a new [`DetectorSettings`] with terminal querying enabled.
     pub fn with_query() -> io::Result<Self> {
         Ok(Self {
-            enable_dcs: true,
+            enable_query: true,
             enable_terminfo: true,
             enable_tmux_info: true,
             query_terminal: DefaultTerminal::new()?,
@@ -116,7 +116,7 @@ impl QueryTerminal for DefaultTerminal {
     }
 }
 
-pub(crate) fn dcs_detect<S, Q, T>(
+pub(crate) fn query_detect<S, Q, T>(
     source: &S,
     out: &T,
     query_terminal: &mut Q,
