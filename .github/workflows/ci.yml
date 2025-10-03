@@ -37,7 +37,8 @@ jobs:
         run: cargo build --all-features --examples
       - name: Test
         run: |
-          cargo test --all-features
+          cargo test --doc
+          cargo llvm-cov test --all-features --codecov --ignore-filename-regex ".cargo|.*_test\.rs" > ./codecov.json
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         env:
