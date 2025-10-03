@@ -33,6 +33,8 @@ jobs:
         run: cargo clippy --all-features --examples -- -D warnings
       - name: Build
         run: cargo build
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
       - name: Build all
         run: cargo build --all-features --examples
       - name: Test
