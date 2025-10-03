@@ -176,6 +176,10 @@ set_color_cache_enabled(true);
 set_color_cache_size(256.try_into().expect("non-zero size"));
 ```
 
+## Examples
+
+See [examples](https://github.com/aschey/termprofile/tree/main/examples).
+
 ## Color Detection Details
 
 Sadly, there is no standard way to accurately detect color support in terminals.
@@ -294,6 +298,11 @@ Environment variables may not be passed into your SSH session depending on your
 configuration, which can cause color support to be detected incorrectly. For
 best results, enable the `query-detect` feature and use a terminal that supports
 [querying](#querying-the-terminal).
+
+## Supported Rust Versions
+
+The MSRV is currently 1.88.0. Since Cargo's V3 resolver supports MSRV-aware
+dependencies, we do not treat an MSRV bump as a breaking change.
 
 ## Acknowledgements
 

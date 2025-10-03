@@ -1,7 +1,17 @@
 [package]
 name = "termprofile"
+description = "A library to detect and handle terminal color/styling support"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88.0"
+authors = ["Austin Schey <aschey13@gmail.com>"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+include = ["/src", "/examples", "/tests", "LICENSE-MIT", "LICENSE-APACHE"]
+repository = "https://github.com/aschey/termprofile"
+homepage = "https://github.com/aschey/termprofile"
+keywords = ["tui", "terminal", "color"]
+categories = ["command-line-interface"]
 
 [dependencies]
 anstyle = { version = "1", optional = true }
