@@ -1,3 +1,10 @@
+[tasks.install-hooks]
+script = '''
+echo "Installing git hooks..."
+cp .githooks/* .git/hooks
+'''
+script_runner = "@shell"
+
 [tasks.pre-coverage]
 install_crate = "cargo-nextest"
 
