@@ -5,11 +5,11 @@ A library to detect and handle terminal color/styling support.
 Terminal environments can have several levels of color support:
 
 - **true color** - sometimes referred to as RGB or 24bit, can set any valid RGB
-  color
+  color.
 - **ANSI 256** - Indexed colors in the
-  [256 color list](https://www.ditig.com/256-colors-cheat-sheet)
+  [256 color list](https://www.ditig.com/256-colors-cheat-sheet).
 - **ANSI 16** - Only the first 16 colors in the ANSI color list, commonly seen
-  in non-graphical environments like login shells
+  in non-graphical environments like login shells.
 - **No Color** - Text modifiers like bold and italics can be used, but no colors
   should be emitted. This is usually set by override variables.
 - **No TTY** - The output is not a TTY and no escape sequences should be used.
@@ -21,7 +21,7 @@ All features are disabled by default.
 - `terminfo` - Enables checking against the terminfo database for color support.
   See [terminfo](#terminfo).
 
-- `query-detect` - Enables querying for truecolor support via
+- `query-detect` - Enables querying for true color support via
   [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html). See
   [querying the terminal](#querying-the-terminal).
 
@@ -29,12 +29,14 @@ All features are disabled by default.
   current version of Windows. See [windows](#windows).
 
 - `convert` - Enables converting incompatible colors based on the color support
-  level.
+  level. See [conversions](#conversions).
 
 - `color-cache` - Adds an optional LRU cache for color conversion operations.
-  This can be useful when rendering under high frame rates.
+  See [caching](#caching).
 
-- `ratatui` - Enables direct conversion to Ratatui style and color objects.
+- `ratatui` - Enables direct conversion to
+  [Ratatui](https://github.com/ratatui/ratatui) style and color objects. See
+  [Ratatui conversions](#ratatui-conversions).
 
 - `ratatui-underline-color` - Enables Ratatui's `underline-color` feature and
   includes underline colors in Ratatui style conversions.
@@ -82,10 +84,11 @@ let profile = TermProfile::detect_with_vars(vars);
 println!("Profile: {profile:?}");
 ```
 
-### Color Conversion
+### Conversions
 
-Colors can be automatically adapted to the nearest compatible type based on the
-given profile.
+Colors and styles can be automatically adapted based on the current profile.
+
+#### Color Conversion
 
 ```rust
 use termprofile::TermProfile;
@@ -115,10 +118,9 @@ let color = ProfileColor::new(Color::Rgb(RgbColor(209, 234, 213)), profile)
 assert_eq!(color.adapt(), Some(Ansi256Color(240).into()));
 ```
 
-### Style Conversion
+#### Style Conversion
 
-Styles can be converted as well. Text modifiers will be removed if the profile
-is set to `NoTTY`.
+Text modifiers will be removed if the profile is set to `NoTTY`.
 
 ```rust
 use termprofile::TermProfile;
@@ -194,7 +196,7 @@ this method isn't supported in many terminals yet.
   the terminal supports true color if this is set to `24bit` or `truecolor`
 - `TERM` - the most common variable supplied by a terminal, this denotes the
   name of the terminal program. We maintain a list of terminals that are known
-  to have truecolor support as well as some fuzzy matching logic for common
+  to have true color support as well as some fuzzy matching logic for common
   suffixes (e.g. `-256color` for ANSI 256 support).
 - `TERM_PROGRAM` - less common than `TERM`, but can report more granular
   information for a few terminals.
@@ -222,7 +224,7 @@ detection behavior.
   - `no_color` - disables all colors
   - `ansi` or `ansi16` - forces ANSI 16 color
   - `ansi256` - forces ANSI 256 colors
-  - `truecolor` or `24bit` - true color
+  - `truecolor`, `true_color`, or `24bit` - forces true color
 
   example: `CLICOLOR_FORCE="ansi256"`
 
@@ -254,7 +256,7 @@ available properties:
   `alacritty-direct`, for example) are the exception and may report color values
   \> 256 here.
 - `RGB` and `Tc` - nonstandard extensions to terminfo, this is a boolean that
-  may be set in some newer terminals to indicate truecolor support.
+  may be set in some newer terminals to indicate true color support.
 
 ### Windows
 
@@ -283,7 +285,7 @@ Terminal multiplexers like GNU Screen and tmux affect the color support of the
 terminal. We attempt to detect these cases properly, but it's difficult to do so
 perfectly since they obscure some information from the host terminal.
 
-Newer versions of Screen support truecolor, but there doesn't seem to be a way
+Newer versions of Screen support true color, but there doesn't seem to be a way
 to see if it's enabled, so we cannot accurately detect this case.
 
 #### SSH
@@ -291,7 +293,7 @@ to see if it's enabled, so we cannot accurately detect this case.
 Environment variables may not be passed into your SSH session depending on your
 configuration, which can cause color support to be detected incorrectly. For
 best results, enable the `query-detect` feature and use a terminal that supports
-[the DECRQSS query](https://github.com/termstandard/colors?tab=readme-ov-file#querying-the-terminal).
+[querying](#querying-the-terminal).
 
 ## Acknowledgements
 

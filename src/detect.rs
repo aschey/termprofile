@@ -642,7 +642,7 @@ impl Detector {
             "no_color" => return Some(TermProfile::NoColor),
             "ansi" | "ansi16" => return Some(TermProfile::Ansi16),
             "ansi256" => return Some(TermProfile::Ansi256),
-            "truecolor" => return Some(TermProfile::TrueColor),
+            "truecolor" | "true_color" => return Some(TermProfile::TrueColor),
             _ => {}
         };
 

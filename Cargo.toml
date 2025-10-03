@@ -17,6 +17,7 @@ termina = { version = "0.1", optional = true }
 os_info = { version = "3.10", default-features = false, optional = true }
 
 [features]
+default = []
 windows-version = ["dep:os_info"]
 convert = ["dep:anstyle", "dep:palette"]
 terminfo = ["dep:termini"]
