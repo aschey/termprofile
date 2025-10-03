@@ -1,5 +1,13 @@
 # termprofile
 
+[![crates.io](https://img.shields.io/crates/v/termprofile.svg?logo=rust)](https://crates.io/crates/termprofile)
+[![docs.rs](https://img.shields.io/docsrs/termprofile?logo=rust)](https://docs.rs/termprofile)
+![license](https://img.shields.io/badge/License-MIT%20or%20Apache%202-green.svg)
+[![CI](https://github.com/aschey/termprofile/actions/workflows/ci.yml/badge.svg)](https://github.com/aschey/termprofile/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/aschey/termprofile/graph/badge.svg?token=mPGU49GuM9)](https://codecov.io/gh/aschey/termprofile)
+![GitHub repo size](https://img.shields.io/github/repo-size/aschey/termprofile)
+![Lines of Code](https://aschey.tech/tokei/github/aschey/termprofile)
+
 A library to detect and handle terminal color/styling support.
 
 Terminal environments can have several levels of color support:
