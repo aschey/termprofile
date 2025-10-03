@@ -109,7 +109,6 @@ jobs:
       - name: Verify docs
         run: cargo +nightly doc -Zunstable-options -Zrustdoc-scrape-examples --no-deps --all-features
         env:
-          RUSTFLAGS: --cfg docsrs
           RUSTDOCFLAGS: --cfg docsrs -D warnings
       - name: Lint dependencies
         uses: EmbarkStudios/cargo-deny-action@v2

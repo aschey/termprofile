@@ -53,18 +53,22 @@ redundant_closure_for_method_calls = "warn"
 [[example]]
 name = "convert"
 required-features = ["convert", "query-detect"]
+doc-scrape-examples = true
 
 [[example]]
 name = "detect"
 required-features = ["query-detect"]
+doc-scrape-examples = true
 
 [[example]]
 name = "override"
 required-features = ["query-detect"]
+doc-scrape-examples = true
 
 [[example]]
 name = "ratatui_app"
 required-features = ["ratatui", "convert", "query-detect"]
+doc-scrape-examples = true
 
 [package.metadata.docs.rs]
 all-features = true
