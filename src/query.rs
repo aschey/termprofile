@@ -17,6 +17,11 @@ where
     T: QueryTerminal,
 {
     /// Query the terminal for true color support using the given query method.
+    ///
+    /// If this option is enabled, the terminal may be put into raw mode while the terminal query
+    /// is performed and then back into cooked mode afterward. It's important to prevent other
+    /// threads from reading or writing to the terminal while this happens because they could
+    /// conflict with each other.
     pub fn query_terminal<Q>(self, query_terminal: Q) -> DetectorSettings<Q> {
         DetectorSettings {
             enable_terminfo: self.enable_terminfo,
@@ -29,6 +34,11 @@ where
 
 impl DetectorSettings<DefaultTerminal> {
     /// Create a new [`DetectorSettings`] with terminal querying enabled.
+    ///
+    /// If this option is enabled, the terminal may be put into raw mode while the terminal query
+    /// is performed and then back into cooked mode afterward. It's important to prevent other
+    /// threads from reading or writing to the terminal while this happens because they could
+    /// conflict with each other.
     pub fn with_query() -> io::Result<Self> {
         Ok(Self {
             enable_query: true,
