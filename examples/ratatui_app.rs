@@ -7,15 +7,17 @@ use ratatui::{DefaultTerminal, Frame};
 use termprofile::{DetectorSettings, TermProfile};
 
 fn main() -> io::Result<()> {
+    // NOTE: it's important to detect the profile before initializing the terminal since the
+    // detection process may affect the terminal state.
+    let profile = TermProfile::detect(&stdout(), DetectorSettings::with_query()?);
+
     let terminal = ratatui::init();
-    let result = run(terminal);
+    let result = run(terminal, profile);
     ratatui::restore();
     result
 }
 
-fn run(mut terminal: DefaultTerminal) -> io::Result<()> {
-    let profile = TermProfile::detect(&stdout(), DetectorSettings::with_query()?);
-
+fn run(mut terminal: DefaultTerminal, profile: TermProfile) -> io::Result<()> {
     loop {
         terminal.draw(|f| draw(&profile, f))?;
         if let Event::Key(key) = event::read()?
