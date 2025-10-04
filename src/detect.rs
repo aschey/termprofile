@@ -570,6 +570,9 @@ impl<T> DetectorSettings<T> {
 
 impl TermProfile {
     /// Detect the output's profile information.
+    ///
+    /// This is a potentially expensive operation depending on the settings and features enabled.
+    /// You likely want to run this once and reuse the result throughout your app.
     pub fn detect<T, Q>(output: &T, settings: DetectorSettings<Q>) -> Self
     where
         T: IsTerminal,
@@ -579,6 +582,9 @@ impl TermProfile {
     }
 
     /// Detect the output's profile information using the given variables as the source.
+    ///
+    /// This is a potentially expensive operation depending on the settings and features enabled.
+    /// You likely want to run this once and reuse the result throughout your app.
     pub fn detect_with_vars(vars: TermVars) -> Self {
         let detector = Detector { vars };
         let profile = detector.detect_tty();
