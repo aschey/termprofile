@@ -50,6 +50,7 @@ impl DetectorSettings<DefaultTerminal> {
 }
 
 /// Default terminal querying implementation that queries `stdout`.
+#[derive(Debug)]
 pub struct DefaultTerminal {
     terminal: PlatformTerminal,
     timeout: Duration,
