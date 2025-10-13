@@ -3,6 +3,7 @@ use anstyle::{Ansi256Color, AnsiColor};
 use crate::{AdaptableColor, TermProfile};
 
 /// A color that can have different variants on the terminal's color support profile.
+#[derive(Debug, Clone)]
 pub struct ProfileColor<C> {
     default: C,
     ansi_256: Option<Ansi256Color>,

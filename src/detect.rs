@@ -33,6 +33,7 @@ pub trait EnvVarSource {
 }
 
 /// Source that pulls environment variables from [`std::env::var`].
+#[derive(Clone, Debug)]
 pub struct Env;
 
 impl EnvVarSource for Env {
@@ -340,6 +341,7 @@ pub struct Rgb {
 }
 
 /// Event returned by a DCS query.
+#[derive(Clone, Debug)]
 pub enum DcsEvent {
     /// Background color queried from the terminal.
     BackgroundColor(Rgb),
@@ -362,6 +364,7 @@ pub trait QueryTerminal: io::Write {
 }
 
 /// Default implementation for [`QueryTerminal`] that doesn't query anything.
+#[derive(Clone, Debug)]
 pub struct NoTerminal;
 
 impl io::Write for NoTerminal {

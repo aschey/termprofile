@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![warn(missing_docs, missing_debug_implementations)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(clippy::unwrap_used)]
 #![doc = include_str!("../README.md")]
