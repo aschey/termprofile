@@ -39,7 +39,7 @@ ratatui-underline-color = ["ratatui-core/underline-color"]
 [dev-dependencies]
 anstyle-owo-colors = "2.0.4"
 owo-colors = "4.2.2"
-rand = "0.9.2"
+rand = "0.10.0"
 rstest = "0.26.1"
 ratatui = "0.30"
 
