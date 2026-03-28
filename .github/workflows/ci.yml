@@ -42,7 +42,7 @@ jobs:
           cargo test --doc --all-features
           cargo llvm-cov test --all-features --codecov --ignore-filename-regex ".cargo|.*_test\.rs" > ./codecov.json
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
