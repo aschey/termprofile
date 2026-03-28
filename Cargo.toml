@@ -21,7 +21,7 @@ palette = { version = "0.7", optional = true, default-features = false, features
 termini = { version = "1", optional = true }
 lru = { version = "0.16", features = ["hashbrown"], optional = true }
 ratatui-core = { version = "0.1", default-features = false, optional = true }
-termina = { version = "0.2", optional = true }
+termina = { version = "0.3", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 os_info = { version = "3.10", default-features = false, optional = true }
