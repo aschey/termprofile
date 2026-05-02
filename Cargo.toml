@@ -19,7 +19,7 @@ palette = { version = "0.7", optional = true, default-features = false, features
   "std",
 ] }
 termini = { version = "1", optional = true }
-lru = { version = "0.17", features = ["hashbrown"], optional = true }
+lru = { version = "0.18", features = ["hashbrown"], optional = true }
 ratatui-core = { version = "0.1", default-features = false, optional = true }
 termina = { version = "0.3", optional = true }
 
